@@ -170,6 +170,7 @@ legend { padding: 0; margin-bottom: 8px; }
 dialog { border: 1px solid var(--line); border-radius: 18px; color: var(--ink); width: min(480px, calc(100% - 24px)); padding: 22px; max-height: calc(100dvh - 24px); box-shadow: 0 18px 80px #171f4140; }
 dialog h2 { font-size: 21px; margin-bottom: 10px; }
 dialog .actions { margin-top: 16px; }
+.usage-notice { font-size: 14px; font-weight: 700; color: var(--ink); background: var(--soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
 .usage-help { display: grid; gap: 12px; }
 .usage-help dt { margin-bottom: 3px; font-size: 14px; font-weight: 700; }
 .usage-help dd { color: var(--muted); font-size: 14px; line-height: 1.65; }

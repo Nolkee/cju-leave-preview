@@ -386,7 +386,8 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
 
 const titleHintKey = 'leave-title-hint-count-v1';
 const TITLE_HINT_MAX = 3;
-const usageHelpHtml = `<dl class="usage-help">
+const usageHelpHtml = `<p class="usage-notice">此项目仅用于学习交流，请勿用于虚假请假、伪造请假证明或冒充正式校务系统。</p>
+  <dl class="usage-help">
     <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
     <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中，打开「分享」或「更多」菜单，选择「添加到主屏幕」或「创建快捷方式」。下次点带有企业微信图标的「请假申请」快捷方式即可打开。</dd></div>
   </dl>`;
