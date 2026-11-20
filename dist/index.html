@@ -8,15 +8,15 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=13">
   <link rel="icon" href="/favicon.ico?v=13" sizes="16x16 32x32 48x48">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
   <script>
-  // 双线路智能切换：Vercel 优先，Netlify 兜底（兼容 Pxxl）
-  // 只在非 Vercel 域名上运行（Netlify 的 *.netlify.app，也兼容 Pxxl 的 *.pxxlspace.cv）。
+  // 双线路智能切换：Vercel 优先，Cloudflare Pages 兜底（兼容 Netlify / Pxxl）
+  // 只在非 Vercel 域名上运行（Pages 的 *.pages.dev，也兼容 Netlify / Pxxl）。
   // 在 Vercel 本身、localhost 预览时直接跳过，不做探测。
   // 逻辑：用一张 Vercel 的 favicon 图片试探 Vercel 通不通，
   // 通就跳到 Vercel（保留 hash，如 #records），不通或超时就留在当前站正常显示。
   // 上次结果记在 localStorage，12 小时内上次走兜底站就直接留，不再等 3 秒。
-  // 手动强制：?route=vercel 直接去 Vercel，?route=netlify（或 ?route=pxxl）强制留当前站。
+  // 手动强制：?route=vercel 直接去 Vercel，?route=pages（或 ?route=netlify、?route=pxxl）强制留当前站。
   (function () {
     try {
       var VERCEL_HOST = 'cju-leave-demo.vercel.app';
@@ -48,7 +48,7 @@
         if (location.hash) t += location.hash;
         return t;
       }
-      if (force === 'pxxl' || force === 'netlify' || force === 'fallback') return;
+      if (force === 'pxxl' || force === 'netlify' || force === 'pages' || force === 'fallback') return;
       if (force === 'vercel') { location.replace(targetUrl()); return; }
       var KEY = 'cju-leave-route-v1';
       var TTL = 12 * 60 * 60 * 1000;
@@ -75,7 +75,7 @@
     } catch (e) {}
   })();
   </script>
-  <script src="app.js?v=30" defer></script>
+  <script src="app.js?v=31" defer></script>
 </head>
 <body>
   <header class="topbar">
