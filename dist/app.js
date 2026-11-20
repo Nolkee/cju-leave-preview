@@ -176,6 +176,11 @@ function list() {
     ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
+    <p class="star-prompt">觉得好用，欢迎点个 Star 或 Follow 我</p>
+    <div class="star-links">
+      <a class="btn" href="https://github.com/Nolkee/cju-leave-preview" target="_blank" rel="noopener">★ Star</a>
+      <a class="btn" href="https://github.com/Nolkee" target="_blank" rel="noopener">Follow Nolkee</a>
+    </div>
     <div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>
   </div>`;
 }
