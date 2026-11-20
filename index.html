@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=13">
   <link rel="icon" href="/favicon.ico?v=13" sizes="16x16 32x32 48x48">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
   <script>
   // 双线路智能切换：Vercel 优先，Netlify 兜底（兼容 Pxxl）
   // 只在非 Vercel 域名上运行（Netlify 的 *.netlify.app，也兼容 Pxxl 的 *.pxxlspace.cv）。
@@ -66,7 +66,7 @@
     } catch (e) {}
   })();
   </script>
-  <script src="app.js?v=17" defer></script>
+  <script src="app.js?v=18" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -78,8 +78,9 @@
         <a id="mobile-back" href="#records" aria-label="返回"><span aria-hidden="true"></span></a>
         <button id="mobile-close" type="button" aria-label="关闭"><span aria-hidden="true">×</span></button>
       </div>
-      <span id="mobile-title" aria-hidden="true"></span>
+      <button id="mobile-title" type="button" aria-label="再次查看使用帮助"></button>
     </div>
+    <div id="title-hint" class="title-hint" hidden>点「请假申请」可再次查看使用帮助（仅前 3 次出现）</div>
   </header>
   <main id="screen"></main>
   <dialog id="modal" aria-labelledby="dialog-title"></dialog>

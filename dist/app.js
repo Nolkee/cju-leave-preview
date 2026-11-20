@@ -384,39 +384,81 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
   modal.showModal();
 }
 
-function showWelcomePopup() {
-  // 使用帮助和 Star / Follow 提示放在同一个弹框里，每次打开界面都弹一次。
-  // 使用帮助只在首次打开时出现，点「不再提示」后，以后只弹 Star / Follow。
-  const starLinks = `<div class="star-links">
-      <a class="btn" href="https://github.com/Nolkee/cju-leave-preview" target="_blank" rel="noopener">★ Star</a>
-      <a class="btn" href="https://github.com/Nolkee" target="_blank" rel="noopener">Follow</a>
-    </div>`;
-  let helpDismissed = false;
-  try { helpDismissed = localStorage.getItem(usageHelpKey) === '1'; } catch {}
-  if (helpDismissed) {
-    openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinks,
-      '<button value="ok" class="btn primary" autofocus>知道了</button>');
-  } else {
-    openDialog('使用帮助', `<dl class="usage-help">
+const titleHintKey = 'leave-title-hint-count-v1';
+const TITLE_HINT_MAX = 3;
+const usageHelpHtml = `<dl class="usage-help">
     <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
     <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中，打开「分享」或「更多」菜单，选择「添加到主屏幕」或「创建快捷方式」。下次点带有企业微信图标的「请假申请」快捷方式即可打开。</dd></div>
-  </dl>
-  <div class="star-section">
-    <p class="star-heading">觉得好用，欢迎点个 Star 或 Follow 我～</p>
-    ${starLinks}
-  </div>`,
-    '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>知道了</button>',
-    () => {
-      try {
-        localStorage.setItem(usageHelpKey, '1');
-      } catch {
-        announce('浏览器无法保存「不再提示」设置');
-      }
-    });
-  }
+  </dl>`;
+const githubMarkSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`;
+
+function starLinksHtml() {
+  return `<div class="star-links">
+      <a class="btn" href="https://github.com/Nolkee/cju-leave-preview" target="_blank" rel="noopener">★ Star</a>
+      <a class="btn" href="https://github.com/Nolkee" target="_blank" rel="noopener">${githubMarkSvg}Follow</a>
+    </div>`;
+}
+
+function bindStarLinks() {
   modal.querySelectorAll('.star-links a').forEach(link => {
     link.addEventListener('click', () => modal.close());
   });
+}
+
+function showUsageHelp() {
+  try {
+    if (localStorage.getItem(usageHelpKey) === '1') return;
+  } catch {
+    // The help stays available when browser storage is blocked.
+  }
+
+  openDialog('使用帮助', usageHelpHtml,
+  '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>',
+  () => {
+    try {
+      localStorage.setItem(usageHelpKey, '1');
+    } catch {
+      announce('浏览器无法保存「不再提示」设置');
+    }
+  });
+}
+
+function showStarPrompt() {
+  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinksHtml(),
+    '<button value="ok" class="btn primary" autofocus>知道了</button>');
+  bindStarLinks();
+}
+
+function showCombinedPopup() {
+  // 点顶栏「请假申请」再次打开：使用帮助 + Star / Follow 合在一个框里，只显示 OK
+  openDialog('使用帮助', `${usageHelpHtml}
+  <div class="star-section">
+    <p class="star-heading">觉得好用，欢迎点个 Star 或 Follow 我～</p>
+    ${starLinksHtml()}
+  </div>`,
+  '<button value="ok" class="btn primary" autofocus>OK</button>');
+  bindStarLinks();
+}
+
+function hideTitleHint() {
+  const hint = document.querySelector('#title-hint');
+  const title = document.querySelector('#mobile-title');
+  if (hint) { hint.hidden = true; if (hint._timer) clearTimeout(hint._timer); }
+  if (title) title.classList.remove('title-pulse');
+}
+
+function showTitleHint() {
+  // 提醒动画只在最初打开网站的前 3 次显示
+  let count = 0;
+  try { count = Number(localStorage.getItem(titleHintKey) || '0') || 0; } catch {}
+  if (count >= TITLE_HINT_MAX) return;
+  try { localStorage.setItem(titleHintKey, String(count + 1)); } catch {}
+  const hint = document.querySelector('#title-hint');
+  const title = document.querySelector('#mobile-title');
+  if (!hint || !title) return;
+  hint.hidden = false;
+  title.classList.add('title-pulse');
+  hint._timer = setTimeout(hideTitleHint, 6000);
 }
 
 function confirmApplication(data, files) {
@@ -576,7 +618,23 @@ document.querySelector('#mobile-close').addEventListener('click', () => {
   window.close();
   setTimeout(() => { location.hash = '#records'; }, 300);
 });
+document.querySelector('#mobile-title').addEventListener('click', () => {
+  hideTitleHint();
+  showCombinedPopup();
+});
 void updateRecords().then(() => {
   render();
-  showWelcomePopup();
+  // 打开界面先弹使用说明，点完 OK 或「不再提示」之后再弹 Star / Follow，两个都关掉就到主界面
+  let helpDismissed = false;
+  try { helpDismissed = localStorage.getItem(usageHelpKey) === '1'; } catch {}
+  if (helpDismissed) {
+    showStarPrompt();
+    modal.addEventListener('close', () => showTitleHint(), { once: true });
+  } else {
+    showUsageHelp();
+    modal.addEventListener('close', () => {
+      showStarPrompt();
+      modal.addEventListener('close', () => showTitleHint(), { once: true });
+    }, { once: true });
+  }
 });
