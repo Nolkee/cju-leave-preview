@@ -20,6 +20,17 @@ let toastTimer;
 let expirationTimer;
 let storageSnapshot;
 let renderedRecords;
+const visitCountKey = 'leave-visit-count-v1';
+let visitCount = 0;
+
+function countVisit() {
+  try {
+    visitCount = (Number(localStorage.getItem(visitCountKey) || '0') || 0) + 1;
+    localStorage.setItem(visitCountKey, String(visitCount));
+  } catch {
+    visitCount = 1;
+  }
+}
 
 function loadStoredRecords() {
   try {
@@ -184,6 +195,7 @@ function list() {
     ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
+    <p class="visit-count">这是你第 ${visitCount} 次访问本站</p>
     <div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>
   </div>`;
 }
@@ -712,6 +724,7 @@ modal.addEventListener('click', async event => {
   announce(ok ? '网址已复制' : '复制失败，请长按链接复制');
 });
 void updateRecords().then(() => {
+  countVisit();
   render();
   // 打开界面先弹使用说明，点完 OK 或「不再提示」之后再弹 Star / Follow，两个都关掉就到主界面；
   // Star 点了「不再显示」后以后不再弹
