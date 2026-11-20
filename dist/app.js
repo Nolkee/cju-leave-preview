@@ -8,7 +8,7 @@ const currentTerm = '2026–2027学年第1学期';
 const seed = {
   id: 'example', term: '2025–2026学年第1学期', phone: '00000000000',
   type: '校内请假', category: '病假', start: '2025-12-15T03:23', end: '2025-12-15T12:00',
-  reason: '身体不适', guardian: '演示监护人', guardianPhone: '00000000000',
+  reason: '身体不适', guardian: '林先生', guardianPhone: '00000000000',
   informed: '是', off: '否', destination: '', files: [], signature: '', count: 1,
   status: 'closed', closedAt: '2025-12-15T19:53:42', closeMethod: '自动销假',
 };
@@ -146,14 +146,19 @@ function list() {
   const cards = records.map(record => {
     const id = escapeHtml(record.id);
     return `<article class="record">
-      <h2>${escapeHtml(record.reason)}</h2>
+      <div class="record-heading">
+        <h2>${escapeHtml(record.reason)}</h2>
+        <details class="record-options">
+          <summary aria-label="更多操作"><span aria-hidden="true">⋯</span></summary>
+          <div class="record-option-list"><button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
+        </details>
+      </div>
       <div class="record-body">${badge(record.status)}${metadata([
         ['请假类型', escapeHtml(record.type)],
         ['请假时间', `${dateText(record.start)} 至<br>${dateText(record.end)}`],
         ['外出地点', record.off === '是' ? escapeHtml(record.destination) : '未离校'],
       ])}</div>
       <div class="actions">
-        <button type="button" class="btn danger" data-delete="${id}">删除</button>
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
         ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
       </div>
@@ -202,7 +207,7 @@ function form() {
           </div></fieldset>
           <p class="duration-row full">请假时长 <output id="duration" for="start end">0小时0分钟</output></p>
           ${field('reason', '请假原因', '<textarea id="reason" name="reason" maxlength="100" placeholder="请输入请假原因" required></textarea><small data-count="reason"></small>', 'full reason-field')}
-          ${field('guardian', '监护人姓名', '<input id="guardian" name="guardian" maxlength="30" placeholder="请输入演示姓名" required><small data-count="guardian"></small>')}
+          ${field('guardian', '监护人姓名', '<input id="guardian" name="guardian" maxlength="30" placeholder="请输入" required><small data-count="guardian"></small>')}
           ${field('guardianPhone', '监护人电话', '<input id="guardianPhone" name="guardianPhone" type="tel" inputmode="tel" pattern="[0-9\\-]{7,13}" maxlength="13" title="请输入 7 至 13 位数字或短横线" placeholder="例如 00000000000" required><small data-count="guardianPhone"></small>')}
           ${choice('informed', '告知监护人')}
           ${choice('off', '是否离校')}
@@ -210,7 +215,7 @@ function form() {
         </div>
       </section>
       <section class="panel application-material"><h2>请假材料</h2>
-        <p class="notice">请提交相关证明。演练时可添加图片，也可跳过。</p>
+        <p class="notice">请提交相关证明</p>
         <label class="btn file-picker"><span>选择图片</span><input id="material" aria-label="选择图片" type="file" accept="image/*" multiple></label>
         <div id="uploads" class="upload-list"></div>
       </section>
@@ -229,24 +234,26 @@ function pictures(files, removable = false) {
 
 function details(record) {
   const id = escapeHtml(record.id);
+  const guardian = record.id === seed.id ? seed.guardian : record.guardian;
+  const closeMethod = record.closeMethod?.replace(/（演练）$/, '');
   return `<div class="narrow details">
     ${heading('请假详情')}
     <section class="panel"><div class="split"><h2 style="margin:0">办理进度</h2>${badge(record.status)}</div>
-      <ol class="progress"><li class="done">学生已提交</li><li class="${record.status !== 'pending' ? 'done' : ''}">${record.status === 'pending' ? '辅导员审批' : '模拟审批通过'}</li><li class="${record.status === 'closed' ? 'done' : ''}">${record.status === 'closed' ? '已销假' : '结束'}</li></ol>
+      <ol class="progress"><li class="done">学生已提交</li><li class="${record.status !== 'pending' ? 'done' : ''}">${record.status === 'pending' ? '辅导员审批' : '审批通过'}</li><li class="${record.status === 'closed' ? 'done' : ''}">${record.status === 'closed' ? '已销假' : '结束'}</li></ol>
     </section>
     <section class="panel"><h2>请假信息</h2>${metadata([
       ['学期', escapeHtml(record.term)], ['本学期请假次数', record.count],
       ['个人手机号', escapeHtml(record.phone)], ['请假类型', escapeHtml(record.type)],
       ['事由类型', escapeHtml(record.category)], ['请假时间', `${dateText(record.start)} 至 ${dateText(record.end)}`],
       ['请假时长', duration(minutes(record.start, record.end))], ['请假原因', escapeHtml(record.reason)],
-      ['监护人姓名', escapeHtml(record.guardian)], ['监护人电话', escapeHtml(record.guardianPhone)],
+      ['监护人姓名', escapeHtml(guardian)], ['监护人电话', escapeHtml(record.guardianPhone)],
       ['告知监护人', escapeHtml(record.informed)], ['是否离校', escapeHtml(record.off)],
       ...(record.off === '是' ? [['外出地点', escapeHtml(record.destination)]] : []),
     ])}</section>
     <section class="panel"><h2>请假材料</h2>${record.files.length ? `<div class="upload-list">${pictures(record.files)}</div>` : '<p>暂无材料</p>'}</section>
-    <section class="panel"><h2>学生签字</h2>${record.signature ? `<img class="sign-preview" src="${escapeHtml(record.signature)}" alt="学生演练签字">` : '<p>暂无签字</p>'}</section>
-    ${record.status === 'closed' ? `<section class="panel"><h2>销假信息</h2>${metadata([['销假时间', dateText(record.closedAt)], ['销假方式', escapeHtml(record.closeMethod)]])}</section>` : ''}
-    ${record.status !== 'closed' ? `<div class="actions footer-actions"><button class="btn primary" data-transition="${id}">${record.status === 'pending' ? '模拟审批通过' : '模拟销假'}</button></div>` : ''}
+    <section class="panel"><h2>学生签字</h2>${record.signature ? `<img class="sign-preview" src="${escapeHtml(record.signature)}" alt="学生签字">` : '<p>暂无签字</p>'}</section>
+    ${record.status === 'closed' ? `<section class="panel"><h2>销假信息</h2>${metadata([['销假时间', dateText(record.closedAt)], ['销假方式', escapeHtml(closeMethod)]])}</section>` : ''}
+    ${record.status !== 'closed' ? `<div class="actions footer-actions"><button class="btn primary" data-transition="${id}">${record.status === 'pending' ? '审批通过' : '销假'}</button></div>` : ''}
   </div>`;
 }
 
@@ -373,7 +380,7 @@ function confirmApplication(data, files) {
         term: currentTerm, count: termCount(items) + 1,
         files: [...files], signature: signed ? canvas.toDataURL() : '', status: 'pending',
       }, ...items]);
-      announceChange('演练申请已提交', saved);
+      announceChange('请假申请已提交', saved);
       location.hash = `detail/${id}`;
     });
   const canvas = modal.querySelector('canvas');
@@ -421,7 +428,7 @@ function render(restoreFocus = false) {
   screen.dataset.page = page;
   renderedRecords = records;
   const title = screen.querySelector('h1');
-  document.title = `${title.textContent} · 请假练习台`;
+  document.title = title.textContent;
   document.querySelector('#mobile-title').textContent = title.textContent;
   document.querySelector('#mobile-back').hidden = page === 'records';
   const application = screen.querySelector('#application');
@@ -448,6 +455,9 @@ screen.addEventListener('click', event => {
   const record = records.find(item => item.id === (button.dataset.delete || button.dataset.proof || button.dataset.transition));
   if (!record) return;
   if (button.dataset.delete) {
+    const options = button.closest('.record-options');
+    options.querySelector('summary').focus({preventScroll: true});
+    options.open = false;
     openDialog('删除请假记录', `<p class="helper">确定删除「${escapeHtml(record.reason)}」及其附件和签字？删除后无法恢复。</p>`,
       '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn danger confirm-danger">确认删除</button>', async () => {
         const saved = await updateRecords(items => {
@@ -459,29 +469,45 @@ screen.addEventListener('click', event => {
     return;
   }
   if (button.dataset.proof) {
-    openDialog('请假证明预览', `<p class="notice">仅供演练 · 无证明效力</p><div class="proof">${metadata([
-      ['学生', '林同学（演示）'], ['类型', escapeHtml(record.type)],
+    openDialog('请假证明预览', `<p class="notice">仅供预览 · 无证明效力</p><div class="proof">${metadata([
+      ['学生', '林同学'], ['类型', escapeHtml(record.type)],
       ['时间', `${dateText(record.start)} 至 ${dateText(record.end)}`], ['状态', statusText[record.status]],
     ])}</div>`, '<button value="cancel" class="btn primary" autofocus>关闭</button>');
     return;
   }
   const pending = record.status === 'pending';
-  const action = pending ? '模拟审批通过' : '模拟销假';
-  openDialog(action, `<p class="helper">${pending ? '审批通过后，将在请假结束时自动销假。' : '确认后，这条演练申请将标记为已销假。'}</p>`,
+  const action = pending ? '审批通过' : '销假';
+  openDialog(action, `<p class="helper">${pending ? '审批通过后，将在请假结束时自动销假。' : '确认后，这条请假申请将标记为已销假。'}</p>`,
     '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn primary">确认</button>', async () => {
       const saved = await updateRecords(items => {
         if (!items.some(item => item.id === record.id && item.status === record.status)) return items;
         return items.map(item => {
           if (item.id !== record.id) return item;
-          return pending ? {...item, status: 'approved'} : {...item, status: 'closed', closedAt: nowLocal(), closeMethod: '学生手动销假（演练）'};
+          return pending ? {...item, status: 'approved'} : {...item, status: 'closed', closedAt: nowLocal(), closeMethod: '学生手动销假'};
         });
       });
       const updated = records.find(item => item.id === record.id);
       if (updated) {
-        const message = pending && updated.status === 'approved' ? '演练审批已通过' : '演练销假已完成';
+        const message = pending && updated.status === 'approved' ? '审批已通过' : '销假已完成';
         announceChange(message, saved);
       }
     });
+});
+
+function closeRecordOptionsOutside(event) {
+  for (const options of screen.querySelectorAll('.record-options[open]')) {
+    if (!options.contains(event.target)) options.open = false;
+  }
+}
+
+document.addEventListener('click', closeRecordOptionsOutside);
+document.addEventListener('focusin', closeRecordOptionsOutside);
+screen.addEventListener('keydown', event => {
+  const options = event.target.closest('.record-options[open]');
+  if (event.key !== 'Escape' || !options) return;
+  event.preventDefault();
+  options.open = false;
+  options.querySelector('summary').focus({preventScroll: true});
 });
 
 window.addEventListener('hashchange', () => {

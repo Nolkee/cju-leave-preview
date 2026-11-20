@@ -51,6 +51,14 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .stats strong { color: #343c98; margin-left: 5px; }
 .record + .record, .panel + .panel { margin-top: 14px; }
 .record h2 { font-size: 20px; overflow-wrap: anywhere; }
+.record-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.record-options { position: relative; flex: none; }
+.record-options > summary { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; cursor: pointer; list-style: none; color: var(--muted); }
+.record-options > summary::-webkit-details-marker { display: none; }
+.record-options > summary span { font-size: 23px; line-height: 1; }
+.record-options > summary:hover, .record-options[open] > summary { background: #eef1f8; }
+.record-option-list { position: absolute; z-index: 1; top: 100%; right: 0; min-width: max-content; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); box-shadow: 0 6px 18px #171f4120; }
+.record-option-list .btn { min-height: 44px; border-color: transparent; }
 .record-body { margin-top: 14px; padding: 14px 16px 2px; border: 1px solid var(--line); border-radius: 12px; background: var(--record-fill); }
 .status { font-size: 13px; font-weight: 700; color: #355ab3; background: var(--closed-fill); border-radius: 6px; padding: 5px 8px; white-space: nowrap; }
 .status.pending { color: #795615; background: #fff3d5; }
@@ -66,7 +74,6 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .btn.danger:hover { background: #fff1f3; }
 .btn.confirm-danger { color: white; background: #a93144; border-color: #a93144; }
 .btn.confirm-danger:hover { background: #912537; }
-.record [data-delete] { margin-right: auto; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.primary:hover { background: #4e4bc6; }
 .file-picker { position: relative; cursor: pointer; }
