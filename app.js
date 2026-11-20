@@ -176,11 +176,6 @@ function list() {
     ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
-    <p class="star-prompt">觉得好用，欢迎点个 Star 或 Follow 我</p>
-    <div class="star-links">
-      <a class="btn" href="https://github.com/Nolkee/cju-leave-preview" target="_blank" rel="noopener">★ Star</a>
-      <a class="btn" href="https://github.com/Nolkee" target="_blank" rel="noopener">Follow Nolkee</a>
-    </div>
     <div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>
   </div>`;
 }
@@ -410,6 +405,17 @@ function showUsageHelp() {
   });
 }
 
+function showStarPrompt() {
+  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', `<div class="star-links">
+      <a class="btn" href="https://github.com/Nolkee/cju-leave-preview" target="_blank" rel="noopener">★ Star</a>
+      <a class="btn" href="https://github.com/Nolkee" target="_blank" rel="noopener">Follow</a>
+    </div>`,
+    '<button value="ok" class="btn primary" autofocus>知道了</button>');
+  modal.querySelectorAll('.star-links a').forEach(link => {
+    link.addEventListener('click', () => modal.close());
+  });
+}
+
 function confirmApplication(data, files) {
   let signed = false;
   openDialog('确认提交', `<p class="helper">学生签字（选填）</p><canvas id="signature" width="840" height="280" aria-label="学生签字区"></canvas><button type="button" class="btn" id="clear-signature">清空签字</button>`,
@@ -569,5 +575,13 @@ document.querySelector('#mobile-close').addEventListener('click', () => {
 });
 void updateRecords().then(() => {
   render();
-  showUsageHelp();
+  // 每次打开界面都弹一次 Star / Follow 提示；首次打开先弹使用帮助，关掉之后再弹这个
+  let helpDismissed = false;
+  try { helpDismissed = localStorage.getItem(usageHelpKey) === '1'; } catch {}
+  if (helpDismissed) {
+    showStarPrompt();
+  } else {
+    showUsageHelp();
+    modal.addEventListener('close', () => showStarPrompt(), { once: true });
+  }
 });

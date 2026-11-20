@@ -109,8 +109,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .file-picker:focus-within { outline: 3px solid #5c63d7; outline-offset: 3px; }
 .file-picker input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
 .end { text-align: center; margin: 18px 0; color: #96989c; font-size: 13px; }
-.star-prompt { text-align: center; color: var(--muted); font-size: 13px; margin: 4px 0 10px; }
-.star-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+.star-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 4px 0 6px; }
 .star-links .btn { min-height: 36px; font-size: 13px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .full { grid-column: 1 / -1; }
