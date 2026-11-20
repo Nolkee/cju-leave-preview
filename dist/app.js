@@ -207,7 +207,7 @@ function form() {
           ${select('type', '请假类型', ['校内请假', '校外请假'])}
           ${select('category', '事由类型', ['病假', '事假', '其他'])}
           <fieldset class="time-range full" data-time-open="false"><legend>请假时间${star}</legend>
-            <button type="button" class="time-trigger" aria-controls="time-inputs" aria-expanded="false">请选择</button>
+            <button type="button" class="time-trigger" aria-controls="time-inputs" aria-expanded="false" data-empty>请选择</button>
             <div class="time-inputs" id="time-inputs">
             <label>开始时间 <input id="start" name="start" type="datetime-local" required></label>
             <label>结束时间 <input id="end" name="end" type="datetime-local" required></label>
@@ -311,6 +311,7 @@ function wireForm(application) {
     application.querySelector('#duration').textContent = total ? duration(total) : '0小时0分钟';
     const dates = [controls.start.value, controls.end.value].filter(Boolean);
     timeToggle.textContent = dates.length ? dates.map(value => value.replace('T', ' ')).join(' 至 ') : '请选择';
+    timeToggle.toggleAttribute('data-empty', dates.length === 0);
     const offCampus = controls.off.value === '是';
     application.querySelector('#destination-row').hidden = !offCampus;
     controls.destination.disabled = !offCampus;
