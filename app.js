@@ -358,7 +358,7 @@ function confirmApplication(data, files) {
     });
   const canvas = modal.querySelector('canvas');
   const context = canvas.getContext('2d');
-  context.strokeStyle = '#123b31';
+  context.strokeStyle = '#15192d';
   context.lineWidth = 5;
   context.lineCap = 'round';
   context.lineJoin = 'round';
