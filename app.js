@@ -613,7 +613,7 @@ function showUsageHelp() {
   }
 
   openDialog('使用帮助', usageHelpHtml,
-  '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>',
+  `${bonusButtonHtml()}<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>`, 
   () => {
     try {
       localStorage.setItem(usageHelpKey, '1');
