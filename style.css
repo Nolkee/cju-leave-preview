@@ -56,7 +56,6 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .page-head { margin-bottom: 22px; }
 .page-head h1 { font-size: clamp(27px, 5vw, 36px); line-height: 1.25; margin-top: 8px; }
 .back { display: inline-block; padding: 5px 0; color: var(--accent); font-size: 14px; font-weight: 700; }
-.split { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .stats { display: flex; flex-wrap: wrap; gap: 10px 28px; border-radius: 12px; padding: 14px 17px; background: var(--soft); margin-bottom: 16px; font-size: 14px; }
 .stats strong { color: #343c98; margin-left: 5px; }
 .leave-list > .stats { color: var(--summary-text); }
@@ -129,9 +128,11 @@ legend { padding: 0; margin-bottom: 8px; }
 .attachment img { display: block; width: 100px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .attachment button { margin-block: 5px; color: #8d2c33; border: 0; background: transparent; padding: 4px 0; }
 .footer-actions { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: min(760px, calc(100% - 48px)); background: var(--page); border-top: 1px solid var(--line); padding: 12px 0 max(12px, env(safe-area-inset-bottom)); z-index: 2; }
-.progress { display: grid; grid-template-columns: repeat(3, 1fr); list-style: none; gap: 6px; padding: 0; margin: 14px 0 0; }
-.progress li { padding-top: 8px; border-top: 3px solid var(--progress-line); color: var(--progress-waiting); font-size: 14px; }
+.progress { display: grid; grid-template-columns: repeat(3, 1fr); list-style: none; gap: 8px; padding: 0; margin: 0; }
+.progress li { padding-bottom: 8px; border-bottom: 2px solid var(--progress-line); color: var(--progress-waiting); text-align: center; font-size: 14px; }
 .progress li.done { border-color: var(--progress-complete); color: var(--progress-complete-text); font-weight: 700; }
+.detail-status { margin: 14px 0 16px; }
+.detail-status .status { display: inline-block; }
 .details .meta { margin: 0; }
 .details .meta div + div { border-top: 1px solid var(--field-rule); }
 .sign-preview { display: block; width: min(100%, 420px); border: 1px solid var(--line); border-radius: 9px; }
@@ -222,7 +223,6 @@ canvas { width: 100%; height: 140px; display: block; border: 1px dashed #9da8d7;
   .details .meta div { grid-template-columns: minmax(95px, 1fr) minmax(0, 1.8fr); align-items: start; padding: 11px 0; line-height: 1.45; }
   .details .meta dt { color: var(--field-label); }
   .details .meta dd { text-align: right; color: var(--field-value); font-size: 14px; }
-  .progress { margin-top: 13px; }
-  .progress li { border-top-width: 2px; font-size: 13px; }
+  .progress li { font-size: 13px; }
   .progress li.done { font-weight: 550; }
 }

@@ -245,9 +245,14 @@ function details(record) {
   const closeMethod = record.closeMethod?.replace(/（演练）$/, '');
   return `<div class="narrow details">
     ${heading('请假详情')}
-    <section class="panel"><div class="split"><h2 style="margin:0">办理进度</h2>${badge(record.status)}</div>
-      <ol class="progress"><li class="done">学生已提交</li><li class="${record.status !== 'pending' ? 'done' : ''}">${record.status === 'pending' ? '辅导员审批' : '审批通过'}</li><li class="${record.status === 'closed' ? 'done' : ''}">${record.status === 'closed' ? '已销假' : '结束'}</li></ol>
-    </section>
+    <div class="panel">
+      <ol class="progress" aria-label="办理进度">
+        <li class="done">学生</li>
+        <li class="${record.status !== 'pending' ? 'done' : ''}">辅导员</li>
+        <li class="${record.status === 'closed' ? 'done' : ''}">结束</li>
+      </ol>
+    </div>
+    <p class="detail-status">${badge(record.status)}</p>
     <section class="panel"><h2>请假信息</h2>${metadata([
       ['学期', escapeHtml(record.term)], ['本学期请假次数', record.count],
       ['个人手机号', escapeHtml(record.phone)], ['请假类型', escapeHtml(record.type)],
