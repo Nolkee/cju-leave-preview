@@ -393,7 +393,7 @@ function showUsageHelp() {
 
   openDialog('使用帮助', `<dl class="usage-help">
     <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
-    <div><dt>方法二（推荐）</dt><dd>在 Safari 中点「分享 → 添加到主屏幕」。下次点紫底「假」字图标即可打开。</dd></div>
+    <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中，打开「分享」或「更多」菜单，选择「添加到主屏幕」或「创建快捷方式」。下次点带有企业微信图标的「请假申请」快捷方式即可打开。</dd></div>
   </dl>`,
   '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>',
   () => {
