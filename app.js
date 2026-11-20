@@ -121,6 +121,13 @@ function dateText(value) {
   return escapeHtml(value.replace('T', ' '));
 }
 
+function dateRange(record) {
+  return `<span class="date-range">
+    <span>${dateText(record.start)} 至</span>
+    <span>${dateText(record.end)}</span>
+  </span>`;
+}
+
 function nowLocal() {
   const date = new Date();
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
@@ -155,7 +162,7 @@ function list() {
       </div>
       <div class="record-body">${badge(record.status)}${metadata([
         ['请假类型', escapeHtml(record.type)],
-        ['请假时间', `${dateText(record.start)} 至<br>${dateText(record.end)}`],
+        ['请假时间', dateRange(record)],
         ['外出地点', record.off === '是' ? escapeHtml(record.destination) : '未离校'],
       ])}</div>
       <div class="actions">
@@ -214,8 +221,8 @@ function form() {
           <div class="full" id="destination-row" hidden>${field('destination', '外出地点', '<input id="destination" name="destination" maxlength="100" placeholder="请输入外出地点" disabled>')}</div>
         </div>
       </section>
+      <p class="notice material-notice">请提交相关证明</p>
       <section class="panel application-material"><h2>请假材料</h2>
-        <p class="notice">请提交相关证明</p>
         <label class="btn file-picker"><span>选择图片</span><input id="material" aria-label="选择图片" type="file" accept="image/*" multiple></label>
         <div id="uploads" class="upload-list"></div>
       </section>
@@ -244,7 +251,7 @@ function details(record) {
     <section class="panel"><h2>请假信息</h2>${metadata([
       ['学期', escapeHtml(record.term)], ['本学期请假次数', record.count],
       ['个人手机号', escapeHtml(record.phone)], ['请假类型', escapeHtml(record.type)],
-      ['事由类型', escapeHtml(record.category)], ['请假时间', `${dateText(record.start)} 至 ${dateText(record.end)}`],
+      ['事由类型', escapeHtml(record.category)], ['请假时间', dateRange(record)],
       ['请假时长', duration(minutes(record.start, record.end))], ['请假原因', escapeHtml(record.reason)],
       ['监护人姓名', escapeHtml(guardian)], ['监护人电话', escapeHtml(record.guardianPhone)],
       ['告知监护人', escapeHtml(record.informed)], ['是否离校', escapeHtml(record.off)],
