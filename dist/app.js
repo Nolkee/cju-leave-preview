@@ -15,12 +15,22 @@ const seed = {
 const statusText = {pending: '待审批', approved: '未销假', closed: '已销假'};
 let records = [seed];
 let toastTimer;
+let expirationTimer;
+let storageSnapshot;
+let renderedRecords;
 
-try {
-  const saved = JSON.parse(localStorage.getItem(storageKey));
-  if (Array.isArray(saved)) records = saved;
-} catch {
-  // The example remains usable when storage is unavailable.
+function loadStoredRecords() {
+  try {
+    const snapshot = localStorage.getItem(storageKey);
+    if (snapshot === storageSnapshot) return;
+    const saved = snapshot === null ? [seed] : JSON.parse(snapshot);
+    if (Array.isArray(saved)) {
+      records = saved;
+      storageSnapshot = snapshot;
+    }
+  } catch {
+    // Keep the in-memory records when browser storage is unavailable.
+  }
 }
 
 function escapeHtml(value) {
@@ -35,14 +45,66 @@ function announce(message) {
   toastTimer = setTimeout(() => { toast.textContent = ''; }, 3600);
 }
 
-function save(next, message) {
+function storeRecords(next) {
   records = next;
   try {
-    localStorage.setItem(storageKey, JSON.stringify(records));
-    announce(message);
+    const snapshot = JSON.stringify(next);
+    localStorage.setItem(storageKey, snapshot);
+    storageSnapshot = snapshot;
+    return true;
   } catch {
-    announce(`${message}。浏览器存储不可用，刷新后将丢失本次操作。`);
+    return false;
   }
+}
+
+function endTimestamp(record) {
+  return record.endTimestamp ?? Date.parse(record.end);
+}
+
+function closeExpired(items, now) {
+  let changed = false;
+  const next = items.map(record => {
+    if (record.status !== 'approved' || !(endTimestamp(record) <= now)) return record;
+    changed = true;
+    return {...record, status: 'closed', closedAt: record.end, closeMethod: '自动销假'};
+  });
+  return changed ? next : items;
+}
+
+function scheduleExpiration() {
+  clearTimeout(expirationTimer);
+  let nextEnd = Infinity;
+  for (const record of records) {
+    if (record.status === 'approved' && Number.isFinite(endTimestamp(record))) {
+      nextEnd = Math.min(nextEnd, endTimestamp(record));
+    }
+  }
+  if (Number.isFinite(nextEnd)) {
+    const delay = Math.min(60000, Math.max(0, nextEnd - Date.now()));
+    expirationTimer = setTimeout(() => { void updateRecords(); }, delay);
+  }
+}
+
+async function updateRecords(change = items => items) {
+  const update = () => {
+    loadStoredRecords();
+    const now = Date.now();
+    const current = closeExpired(records, now);
+    const next = closeExpired(change(current), now);
+    const saved = next === records || storeRecords(next);
+    scheduleExpiration();
+    refreshRecordsView();
+    return saved;
+  };
+  return navigator.locks ? navigator.locks.request(storageKey, update) : update();
+}
+
+function announceChange(message, saved) {
+  announce(saved ? message : `${message}。浏览器存储不可用，刷新后将丢失本次操作。`);
+}
+
+function termCount(items = records) {
+  return items.filter(record => record.term === currentTerm).length;
 }
 
 function minutes(start, end) {
@@ -64,10 +126,10 @@ function nowLocal() {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
 }
 
-function heading(title, back, subtitle = '') {
+function heading(title, showBack = true) {
   return `<div class="page-head">
-    <a class="back" href="#${back === '用户大厅' ? 'home' : 'records'}">返回${back}</a>
-    <h1 tabindex="-1">${title}</h1>${subtitle ? `<p class="helper">${subtitle}</p>` : ''}
+    ${showBack ? '<a class="back" href="#records">返回请假记录</a>' : ''}
+    <h1 tabindex="-1">${title}</h1>
   </div>`;
 }
 
@@ -77,50 +139,6 @@ function metadata(items) {
 
 function badge(status) {
   return `<span class="status ${status === 'pending' ? 'pending' : ''}">${statusText[status]}</span>`;
-}
-
-function home() {
-  return `<section class="hero">
-    <div><span class="eyebrow">学生事务</span><h1 tabindex="-1">用户大厅</h1><p>在浏览器中练习提交请假、查看审批和销假。</p></div>
-    ${studentCard()}
-  </section>
-  <div class="home-grid">
-    ${leaveEntry('常用功能')}
-    <section class="panel">
-      <div class="notice-tabs" aria-label="消息分类">
-        <button type="button" data-message="notice" aria-pressed="true">通知事项</button>
-        <button type="button" data-message="tasks" aria-pressed="false">待办事项</button>
-        <button type="button" data-message="announcements" aria-pressed="false">公示事项</button>
-      </div>
-      <div id="message-panel" aria-live="polite">${homeMessage('notice')}</div>
-    </section>
-  </div>`;
-}
-
-function homeMessage(type) {
-  if (type === 'notice') return '<h3>演练说明</h3><p>填写演示资料即可体验流程。申请记录和材料保存在当前浏览器。</p>';
-  if (type === 'announcements') return '<p>暂无演练公示</p>';
-  const pending = records.filter(record => record.status === 'pending').length;
-  return pending ? `<p>有 ${pending} 条演练申请待审批。</p><a class="back" href="#records">查看请假记录</a>` : '<p>暂无待办事项</p>';
-}
-
-function studentCard() {
-  return `<div class="student">
-    <div class="student-top"><span class="avatar" aria-hidden="true">林</span><div><strong>林同学</strong><br><small>演示学生</small></div></div>
-    <dl><div><dt>学号</dt><dd>DEMO-2404</dd></div><div><dt>班级</dt><dd>计算机 2404 班</dd></div></dl>
-  </div>`;
-}
-
-function leaveEntry(title) {
-  return `<section class="panel"><h2>${title}</h2><a class="home-entry" href="#records" aria-label="进入请假">
-    <span class="tile-icon" aria-hidden="true"></span><div><h3>请假申请</h3><p>查看记录或发起一条新申请</p></div><span class="btn primary" aria-hidden="true">进入请假</span>
-  </a></section>`;
-}
-
-function mobileTabs(page) {
-  return `<nav class="mobile-tabs" aria-label="大厅导航">${[
-    ['home', '首页'], ['functions', '功能列表'], ['profile', '个人中心'],
-  ].map(([route, title]) => `<a href="#${route}"${route === page ? ' aria-current="page"' : ''}>${title}</a>`).join('')}</nav>`;
 }
 
 function list() {
@@ -135,13 +153,14 @@ function list() {
         ['外出地点', record.off === '是' ? escapeHtml(record.destination) : '未离校'],
       ])}</div>
       <div class="actions">
+        <button type="button" class="btn danger" data-delete="${id}">删除</button>
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
         ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
       </div>
     </article>`;
   }).join('');
   return `<div class="narrow leave-list">
-    ${heading('请假申请', '用户大厅')}
+    ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
     <div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>
@@ -166,12 +185,11 @@ function choice(name, label) {
 }
 
 function form() {
-  const count = records.filter(record => record.term === currentTerm).length;
   return `<div class="narrow">
-    ${heading('请假申请', '请假记录')}
+    ${heading('请假申请')}
     <form id="application" autocomplete="off">
       <section class="panel application-info"><h2>请假信息</h2>
-        <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong>${count}</strong></span></div>
+        <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong id="term-count">${termCount()}</strong></span></div>
         <div class="form-grid">
           ${field('phone', '个人手机号', '<input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{11}" title="请输入 11 位数字" maxlength="11" value="00000000000" required><small data-count="phone"></small>', 'full')}
           ${select('type', '请假类型', ['校内请假', '校外请假'])}
@@ -212,7 +230,7 @@ function pictures(files, removable = false) {
 function details(record) {
   const id = escapeHtml(record.id);
   return `<div class="narrow details">
-    ${heading('请假详情', '请假记录')}
+    ${heading('请假详情')}
     <section class="panel"><div class="split"><h2 style="margin:0">办理进度</h2>${badge(record.status)}</div>
       <ol class="progress"><li class="done">学生已提交</li><li class="${record.status !== 'pending' ? 'done' : ''}">${record.status === 'pending' ? '辅导员审批' : '模拟审批通过'}</li><li class="${record.status === 'closed' ? 'done' : ''}">${record.status === 'closed' ? '已销假' : '结束'}</li></ol>
     </section>
@@ -340,6 +358,7 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
     const choice = modal.returnValue;
     modal.returnValue = '';
     if (choice === 'confirm') onConfirm();
+    refreshRecordsView();
   }, {once: true});
   modal.showModal();
 }
@@ -347,14 +366,15 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
 function confirmApplication(data, files) {
   let signed = false;
   openDialog('确认提交', `<p class="helper">学生签字（选填）</p><canvas id="signature" width="840" height="280" aria-label="学生签字区"></canvas><button type="button" class="btn" id="clear-signature">清空签字</button>`,
-    '<button value="cancel" class="btn" autofocus>继续填写</button><button value="confirm" class="btn primary">确认提交</button>', () => {
-      const record = {
-        ...data, id: `practice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        term: currentTerm, count: records.filter(item => item.term === currentTerm).length + 1,
+    '<button value="cancel" class="btn" autofocus>继续填写</button><button value="confirm" class="btn primary">确认提交</button>', async () => {
+      const id = `practice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const saved = await updateRecords(items => [{
+        ...data, id, endTimestamp: Date.parse(data.end),
+        term: currentTerm, count: termCount(items) + 1,
         files: [...files], signature: signed ? canvas.toDataURL() : '', status: 'pending',
-      };
-      save([record, ...records], '演练申请已提交');
-      location.hash = `detail/${record.id}`;
+      }, ...items]);
+      announceChange('演练申请已提交', saved);
+      location.hash = `detail/${id}`;
     });
   const canvas = modal.querySelector('canvas');
   const context = canvas.getContext('2d');
@@ -396,25 +416,14 @@ function confirmApplication(data, files) {
 function render(restoreFocus = false) {
   const [requestedPage, id] = location.hash.slice(1).split('/');
   const record = records.find(item => item.id === id);
-  const page = ['home', 'functions', 'profile', 'records', 'apply', 'detail'].includes(requestedPage) ? requestedPage : 'home';
-  const homeScreen = ['home', 'functions', 'profile'].includes(page);
-  const views = {
-    home, functions: () => `${heading('功能列表', '用户大厅')}${leaveEntry('学生事务')}`,
-    profile: () => `${heading('个人中心', '用户大厅')}${studentCard()}`,
-    records: list, apply: form, detail: () => record ? details(record) : list(),
-  };
-  screen.innerHTML = views[page]() + (homeScreen ? mobileTabs(page) : '');
+  const page = requestedPage === 'apply' ? 'apply' : requestedPage === 'detail' && record ? 'detail' : 'records';
+  screen.innerHTML = page === 'apply' ? form() : page === 'detail' ? details(record) : list();
   screen.dataset.page = page;
+  renderedRecords = records;
   const title = screen.querySelector('h1');
   document.title = `${title.textContent} · 请假练习台`;
   document.querySelector('#mobile-title').textContent = title.textContent;
-  const mobileBack = document.querySelector('#mobile-back');
-  mobileBack.hidden = homeScreen;
-  mobileBack.href = page === 'records' ? '#home' : '#records';
-  document.querySelectorAll('[data-nav]').forEach(link => {
-    if (link.dataset.nav === (homeScreen ? 'home' : 'records')) link.setAttribute('aria-current', 'page');
-    else link.removeAttribute('aria-current');
-  });
+  document.querySelector('#mobile-back').hidden = page === 'records';
   const application = screen.querySelector('#application');
   if (application) wireForm(application);
   if (restoreFocus) {
@@ -423,17 +432,32 @@ function render(restoreFocus = false) {
   }
 }
 
-screen.addEventListener('click', event => {
-  const message = event.target.closest('[data-message]');
-  if (message) {
-    screen.querySelectorAll('[data-message]').forEach(button => button.setAttribute('aria-pressed', String(button === message)));
-    screen.querySelector('#message-panel').innerHTML = homeMessage(message.dataset.message);
+function refreshRecordsView() {
+  if (modal.open || !screen.dataset.page || renderedRecords === records) return;
+  if (screen.dataset.page !== 'apply') {
+    render();
     return;
   }
-  const button = event.target.closest('[data-proof], [data-transition]');
+  screen.querySelector('#term-count').textContent = termCount();
+  renderedRecords = records;
+}
+
+screen.addEventListener('click', event => {
+  const button = event.target.closest('[data-delete], [data-proof], [data-transition]');
   if (!button) return;
-  const record = records.find(item => item.id === (button.dataset.proof || button.dataset.transition));
+  const record = records.find(item => item.id === (button.dataset.delete || button.dataset.proof || button.dataset.transition));
   if (!record) return;
+  if (button.dataset.delete) {
+    openDialog('删除请假记录', `<p class="helper">确定删除「${escapeHtml(record.reason)}」及其附件和签字？删除后无法恢复。</p>`,
+      '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn danger confirm-danger">确认删除</button>', async () => {
+        const saved = await updateRecords(items => {
+          const remaining = items.filter(item => item.id !== record.id);
+          return remaining.length === items.length ? items : remaining;
+        });
+        announceChange('请假记录已删除', saved);
+      });
+    return;
+  }
   if (button.dataset.proof) {
     openDialog('请假证明预览', `<p class="notice">仅供演练 · 无证明效力</p><div class="proof">${metadata([
       ['学生', '林同学（演示）'], ['类型', escapeHtml(record.type)],
@@ -443,16 +467,33 @@ screen.addEventListener('click', event => {
   }
   const pending = record.status === 'pending';
   const action = pending ? '模拟审批通过' : '模拟销假';
-  openDialog(action, `<p class="helper">${pending ? '确认后，这条演练申请将进入未销假状态。' : '确认后，这条演练申请将标记为已销假。'}</p>`,
-    '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn primary">确认</button>', () => {
-      const updated = pending ? {...record, status: 'approved'} : {...record, status: 'closed', closedAt: nowLocal(), closeMethod: '学生手动销假（演练）'};
-      save(records.map(item => item.id === record.id ? updated : item), pending ? '演练审批已通过' : '演练销假已完成');
-      render(true);
+  openDialog(action, `<p class="helper">${pending ? '审批通过后，将在请假结束时自动销假。' : '确认后，这条演练申请将标记为已销假。'}</p>`,
+    '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn primary">确认</button>', async () => {
+      const saved = await updateRecords(items => {
+        if (!items.some(item => item.id === record.id && item.status === record.status)) return items;
+        return items.map(item => {
+          if (item.id !== record.id) return item;
+          return pending ? {...item, status: 'approved'} : {...item, status: 'closed', closedAt: nowLocal(), closeMethod: '学生手动销假（演练）'};
+        });
+      });
+      const updated = records.find(item => item.id === record.id);
+      if (updated) {
+        const message = pending && updated.status === 'approved' ? '演练审批已通过' : '演练销假已完成';
+        announceChange(message, saved);
+      }
     });
 });
 
 window.addEventListener('hashchange', () => {
   if (modal.open) modal.close();
   render(true);
+  void updateRecords();
 });
-render();
+window.addEventListener('pageshow', () => { void updateRecords(); });
+window.addEventListener('storage', event => {
+  if (event.key === storageKey || event.key === null) void updateRecords();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void updateRecords();
+});
+void updateRecords().then(() => render());
