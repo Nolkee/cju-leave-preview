@@ -32,6 +32,48 @@ function countVisit() {
   }
 }
 
+// 全站计数（Cloudflare Worker + KV）：浏览器 ID 去重，全站共用同一套数
+const COUNTER_BASE = 'https://cju-leave-preview.ans44454456.workers.dev';
+const clientIdKey = 'leave-client-id-v1';
+let counterTotals = null; // 最近一次 Worker 返回的 { visitors, bonus, myVisitorRank, myBonusRank }
+
+function getClientId() {
+  try {
+    const vid = localStorage.getItem(clientIdKey);
+    if (vid && /^[A-Za-z0-9-]{8,64}$/.test(vid)) return vid;
+  } catch {}
+  const vid = 'v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  try { localStorage.setItem(clientIdKey, vid); } catch {}
+  return vid;
+}
+
+// 跳转带过来的 ?vid=：认下这个 ID（两站算一个人），然后从地址栏去掉
+function adoptVidFromUrl() {
+  try {
+    const params = new URLSearchParams(location.search || '');
+    const vid = params.get('vid');
+    if (vid && /^[A-Za-z0-9-]{8,64}$/.test(vid)) {
+      try { localStorage.setItem(clientIdKey, vid); } catch {}
+      params.delete('vid');
+      const qs = params.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+    }
+  } catch {}
+}
+
+async function callCounter(path) {
+  try {
+    const res = await fetch(`${COUNTER_BASE}${path}?vid=${encodeURIComponent(getClientId())}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (typeof data.visitors === 'number' && typeof data.bonus === 'number') {
+      counterTotals = data;
+      return data;
+    }
+  } catch {}
+  return null;
+}
+
 function loadStoredRecords() {
   try {
     const snapshot = localStorage.getItem(storageKey);
@@ -195,7 +237,6 @@ function list() {
     ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
-    <p class="visit-count">这是你第 ${visitCount} 次访问本站</p>
     <div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>
   </div>`;
 }
@@ -477,6 +518,80 @@ function bindStarLinks() {
   });
 }
 
+function bonusButtonHtml() {
+  return `<div class="bonus-row"><button type="button" class="btn bonus-btn" data-bonus>🎁 Bonus</button></div>`;
+}
+
+async function openBonusPopup() {
+  const data = await callCounter('/bonus');
+  const latest = data || counterTotals;
+  const num = n => (typeof n === 'number' && n > 0 ? String(n) : '—');
+  const bonusRank = latest && typeof latest.myBonusRank === 'number' ? latest.myBonusRank : null;
+  const visitorRank = latest && typeof latest.myVisitorRank === 'number' ? latest.myVisitorRank : null;
+  openDialog('Bonus', `<div class="bonus-result">
+    <p>你是</p>
+    <p>第 <strong>${num(bonusRank)}</strong> 个点击 Bonus</p>
+    <p>第 <strong>${num(visitorRank)}</strong> 个访问此网站</p>
+    <p>的 CJUer</p>
+    <p class="bonus-visits">这是你第 ${visitCount} 次访问本站</p>
+  </div>`,
+  '<button value="ok" class="btn primary" autofocus>知道了</button>');
+}
+
+// 彩带飞溅：手写小彩带，不走 CDN，离线也能飞
+const confettiCanvas = document.querySelector('#confetti');
+let confettiRaf = 0;
+function fireConfetti() {
+  if (!confettiCanvas || typeof confettiCanvas.showPopover !== 'function') return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = window.innerWidth, h = window.innerHeight;
+  confettiCanvas.width = Math.round(w * dpr);
+  confettiCanvas.height = Math.round(h * dpr);
+  const ctx = confettiCanvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const colors = ['#5c63d7', '#f59e0b', '#ec4899', '#22c55e', '#3b82f6', '#eab308', '#ef4444'];
+  const pieces = Array.from({ length: 140 }, () => ({
+    x: w / 2 + (Math.random() - 0.5) * w * 0.7,
+    y: h * 0.25 + (Math.random() - 0.5) * 60,
+    vx: (Math.random() - 0.5) * 420,
+    vy: -Math.random() * 380 - 60,
+    size: 5 + Math.random() * 7,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    rot: Math.random() * Math.PI * 2,
+    vr: (Math.random() - 0.5) * 12,
+    circle: Math.random() < 0.5,
+  }));
+  const start = performance.now();
+  const duration = 2800;
+  let last = start;
+  try { confettiCanvas.showPopover(); } catch {}
+  cancelAnimationFrame(confettiRaf);
+  (function tick(now) {
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    ctx.clearRect(0, 0, w, h);
+    for (const p of pieces) {
+      p.vy += 900 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      if (p.circle) { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill(); }
+      else ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+    }
+    if (now - start < duration) {
+      confettiRaf = requestAnimationFrame(tick);
+    } else {
+      try { confettiCanvas.hidePopover(); } catch {}
+      ctx.clearRect(0, 0, w, h);
+    }
+  })(start);
+}
+
 function showUsageHelp() {
   try {
     if (localStorage.getItem(usageHelpKey) === '1') return;
@@ -496,7 +611,7 @@ function showUsageHelp() {
 }
 
 function showStarPrompt() {
-  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinksHtml(),
+  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', `${starLinksHtml()}${bonusButtonHtml()}`, 
     '<button value="confirm" class="btn">不再显示</button><button value="ok" class="btn primary" autofocus>知道了</button>',
     () => {
       try {
@@ -514,7 +629,8 @@ function showCombinedPopup() {
   <div class="star-section">
     <p class="star-heading">觉得好用，欢迎点个 Star 或 Follow 我～</p>
     ${starLinksHtml()}
-  </div>`,
+  </div>
+  ${bonusButtonHtml()}`,
   '<button value="ok" class="btn primary" autofocus>OK</button>');
   bindStarLinks();
 }
@@ -731,8 +847,18 @@ modal.addEventListener('click', async event => {
   const ok = await copyText(link.href);
   announce(ok ? '网址已复制' : '复制失败，请长按链接复制');
 });
+
+// Bonus 按钮在弹窗里：先关当前弹窗再开 Bonus 框，彩带先飞
+modal.addEventListener('click', event => {
+  if (!event.target.closest('[data-bonus]')) return;
+  modal.close();
+  fireConfetti();
+  openBonusPopup();
+});
 void updateRecords().then(() => {
+  adoptVidFromUrl();
   countVisit();
+  callCounter('/visit');
   render();
   // 打开界面先弹使用说明，点完 OK 或「不再提示」之后再弹 Star / Follow，两个都关掉就到主界面；
   // Star 点了「不再显示」后以后不再弹

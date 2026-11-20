@@ -30,17 +30,33 @@ export default {
     if (!kind) return json({ error: 'not found' }, 404);
     const vid = url.searchParams.get('vid') || '';
     if (!/^[A-Za-z0-9-]{8,64}$/.test(vid)) return json({ error: 'bad vid' }, 400);
-    const seenKey = `seen:${kind}:${vid}`;
-    const totalKey = `total:${kind}`;
-    const seen = await env.COUNTER.get(seenKey);
-    let total = parseInt((await env.COUNTER.get(totalKey)) || '0', 10) || 0;
-    if (!seen) {
-      await env.COUNTER.put(seenKey, '1');
-      total += 1;
-      await env.COUNTER.put(totalKey, String(total));
-    }
+    // 本次调用的计数：第一次来才 +1，seen 的值就是这个浏览器当时的排名
+    const isNew = await countOnce(env.COUNTER, kind, vid);
     const visitors = parseInt((await env.COUNTER.get('total:visitors')) || '0', 10) || 0;
     const bonus = parseInt((await env.COUNTER.get('total:bonus')) || '0', 10) || 0;
-    return json({ visitors, bonus, isNew: !seen });
+    return json({
+      visitors,
+      bonus,
+      isNew,
+      myVisitorRank: await rankOf(env.COUNTER, 'visitors', vid),
+      myBonusRank: await rankOf(env.COUNTER, 'bonus', vid),
+    });
   },
 };
+
+// 第一次出现才 +1，并把当时的总数（即排名）记在 seen 里；返回是不是第一次
+async function countOnce(store, kind, vid) {
+  const seenKey = `seen:${kind}:${vid}`;
+  const totalKey = `total:${kind}`;
+  if (await store.get(seenKey)) return false;
+  const total = (parseInt((await store.get(totalKey)) || '0', 10) || 0) + 1;
+  await store.put(seenKey, String(total));
+  await store.put(totalKey, String(total));
+  return true;
+}
+
+// 这个浏览器在某类计数里的排名（从没计过就返回 null）
+async function rankOf(store, kind, vid) {
+  const n = parseInt((await store.get(`seen:${kind}:${vid}`)) || '', 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}

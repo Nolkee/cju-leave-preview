@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=13">
   <link rel="icon" href="/favicon.ico?v=13" sizes="16x16 32x32 48x48">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="stylesheet" href="style.css?v=28">
+  <link rel="stylesheet" href="style.css?v=29">
   <script>
   // 双线路智能切换：Vercel 优先，Netlify 兜底（兼容 Pxxl）
   // 只在非 Vercel 域名上运行（Netlify 的 *.netlify.app，也兼容 Pxxl 的 *.pxxlspace.cv）。
@@ -26,16 +26,25 @@
       if (host === VERCEL_HOST || host.endsWith('.vercel.app')) return;
       var params = new URLSearchParams(location.search || '');
       var force = params.get('route');
-      function cleanSearch() {
-        var sp = new URLSearchParams(location.search || '');
-        sp.delete('route');
-        var qs = sp.toString();
-        return qs ? '?' + qs : '';
+      // 全站计数用的浏览器 ID：两站共用一个，跳转时带过去，避免同一个人算两次
+      var VID_KEY = 'leave-client-id-v1';
+      function getVid() {
+        try {
+          var v = localStorage.getItem(VID_KEY);
+          if (v && /^[A-Za-z0-9-]{8,64}$/.test(v)) return v;
+          v = 'v-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+          try { localStorage.setItem(VID_KEY, v); } catch (e) {}
+          return v;
+        } catch (e) { return 'v-' + Date.now().toString(36); }
       }
       function targetUrl() {
         var t = VERCEL_BASE;
         if (location.pathname && location.pathname !== '/') t += location.pathname.replace(/^\//, '');
-        t += cleanSearch();
+        var sp = new URLSearchParams(location.search || '');
+        sp.delete('route');
+        sp.set('vid', getVid());
+        var qs = sp.toString();
+        t += qs ? '?' + qs : '';
         if (location.hash) t += location.hash;
         return t;
       }
@@ -66,7 +75,7 @@
     } catch (e) {}
   })();
   </script>
-  <script src="app.js?v=28" defer></script>
+  <script src="app.js?v=29" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -85,5 +94,6 @@
   <main id="screen"></main>
   <dialog id="modal" aria-labelledby="dialog-title"></dialog>
   <div id="toast" role="status" aria-live="polite" popover="manual"></div>
+  <canvas id="confetti" popover="manual" aria-hidden="true"></canvas>
 </body>
 </html>

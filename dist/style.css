@@ -125,6 +125,15 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .star-heading { font-size: 15px; font-weight: 700; margin: 16px 0 10px; }
 .star-links .btn { min-height: 36px; font-size: 13px; }
 .star-links .btn svg { width: 16px; height: 16px; margin-right: 6px; flex: none; }
+.bonus-row { display: flex; justify-content: center; margin: 12px 0 2px; }
+.bonus-btn { min-height: 36px; font-size: 13px; border-color: #e7c65a; background: #fff8e1; color: #7a5b00; }
+.bonus-btn:hover { background: #ffefc2; }
+.bonus-result { text-align: center; font-size: 17px; line-height: 1.9; }
+.bonus-result p { margin: 0; }
+.bonus-result strong { font-size: 26px; color: var(--accent); }
+.bonus-visits { margin-top: 12px !important; font-size: 13px; color: var(--muted); }
+#confetti { position: fixed; inset: 0; width: 100vw; height: 100dvh; pointer-events: none; border: 0; padding: 0; margin: 0; background: transparent; }
+#confetti:popover-open { margin: 0; inset: 0; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .full { grid-column: 1 / -1; }
 .field { display: grid; gap: 7px; min-width: 0; align-content: start; }
@@ -174,7 +183,6 @@ dialog .actions { margin-top: 16px; }
 .usage-tip { font-size: 13px; line-height: 1.6; color: #57450a; background: #fef9e7; border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
 .quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
 .quick-btn { width: 100%; }
-.visit-count { margin: 10px 0 0; text-align: center; color: var(--muted); font-size: 12px; }
 .usage-help { display: grid; gap: 12px; }
 .usage-help dt { margin-bottom: 3px; font-size: 14px; font-weight: 700; }
 .usage-help dd { color: var(--muted); font-size: 14px; line-height: 1.65; }
