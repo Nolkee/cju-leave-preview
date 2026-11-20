@@ -209,6 +209,10 @@ function form() {
   return `<div class="narrow">
     ${heading('请假申请')}
     <form id="application" autocomplete="off">
+      <div class="quick-actions">
+        <button type="button" class="btn quick-btn" data-template="sick">一键病假</button>
+        <button type="button" class="btn quick-btn" data-template="personal">一键事假</button>
+      </div>
       <section class="panel application-info"><h2>请假信息</h2>
         <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong id="term-count">${termCount()}</strong></span></div>
         <div class="form-grid">
@@ -336,6 +340,39 @@ function wireForm(application) {
     }
   }
 
+  const templates = {
+    sick: {category: '病假', reason: '生病'},
+    personal: {category: '事假', reason: '事假'},
+  };
+
+  function applyTemplate(kind) {
+    const template = templates[kind];
+    if (!template) return;
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    controls.type.value = '校内请假';
+    controls.category.value = template.category;
+    controls.start.value = `${day}T00:00`;
+    controls.end.value = `${day}T23:59`;
+    controls.reason.value = template.reason;
+    controls.guardian.value = '高女士';
+    controls.guardianPhone.value = '13398384611';
+    controls.informed.value = '是';
+    controls.off.value = '否';
+    update();
+    announce(`已填入${template.category}模板，请核对后提交`);
+  }
+
+  application.querySelectorAll('[data-template]').forEach(button => {
+    button.addEventListener('click', () => applyTemplate(button.dataset.template));
+  });
+
+  // 请假类型和是否离校联动：改成校外请假，是否离校同步改成是；改回校内，同步改回否
+  controls.type.addEventListener('change', () => {
+    controls.off.value = controls.type.value === '校外请假' ? '是' : '否';
+    update();
+  });
+
   application.addEventListener('input', update);
   application.addEventListener('change', update);
   timeToggle.addEventListener('click', () => setTimeOpen(timeRange.dataset.timeOpen === 'false'));
@@ -404,7 +441,7 @@ const usageHelpHtml = `<p class="usage-notice">此项目仅用于学习交流，
       </ol>
       下次点桌面带有企业微信图标的「请假申请」快捷方式即可打开～</dd></div>
   </dl>
-  <p class="usage-tip"><strong>温馨提示：</strong>大陆网络访问时，页面右下角会显示一个小图标；使用科学上网访问本站，会自动跳转到 Vercel 版本。</p>`;
+  <p class="usage-tip"><strong>温馨提示：</strong>大陆网络访问时，页面右下角会显示一个小图标；使用科学上网访问本站，会自动跳转到 Vercel 版本（无图标）。</p>`;
 const githubMarkSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`;
 
 function starLinksHtml() {
