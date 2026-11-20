@@ -426,6 +426,14 @@ function wireForm(application) {
     for (const name of ['reason', 'guardian', 'destination']) data[name] = (data[name] || '').trim();
     confirmApplication(data, attachments);
   });
+  // 新增默认模板：打开表单即按常用值预填（时间当天一整天、监护人高女士、告知监护人是）
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  controls.start.value = `${todayStr}T00:00`;
+  controls.end.value = `${todayStr}T23:59`;
+  controls.guardian.value = '高女士';
+  controls.guardianPhone.value = '13398384611';
+  controls.informed.value = '是';
   update();
 }
 
