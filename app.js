@@ -613,7 +613,7 @@ function showUsageHelp() {
   }
 
   openDialog('使用帮助', usageHelpHtml,
-  `${bonusButtonHtml()}<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>`, 
+  '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>', 
   () => {
     try {
       localStorage.setItem(usageHelpKey, '1');
@@ -625,7 +625,7 @@ function showUsageHelp() {
 
 function showStarPrompt() {
   openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinksHtml(), 
-    `${bonusButtonHtml()}<button value="confirm" class="btn">不再显示</button><button value="ok" class="btn primary" autofocus>知道了</button>`, 
+    '<button value="confirm" class="btn">不再显示</button><button value="ok" class="btn primary" autofocus>知道了</button>', 
     () => {
       try {
         localStorage.setItem(starPromptKey, '1');
