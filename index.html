@@ -10,13 +10,13 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="style.css?v=12">
   <script>
-  // 双线路智能切换：Vercel 优先，Pxxl 兜底
-  // 只在非 Vercel 域名上运行（主要是 Pxxl 的 *.pxxlspace.cv）。
+  // 双线路智能切换：Vercel 优先，Netlify 兜底（兼容 Pxxl）
+  // 只在非 Vercel 域名上运行（Netlify 的 *.netlify.app，也兼容 Pxxl 的 *.pxxlspace.cv）。
   // 在 Vercel 本身、localhost 预览时直接跳过，不做探测。
   // 逻辑：用一张 Vercel 的 favicon 图片试探 Vercel 通不通，
   // 通就跳到 Vercel（保留 hash，如 #records），不通或超时就留在当前站正常显示。
-  // 上次结果记在 localStorage，12 小时内上次走 Pxxl 就直接留，不再等 3 秒。
-  // 手动强制：?route=vercel 直接去 Vercel，?route=pxxl 强制留当前站。
+  // 上次结果记在 localStorage，12 小时内上次走兜底站就直接留，不再等 3 秒。
+  // 手动强制：?route=vercel 直接去 Vercel，?route=netlify（或 ?route=pxxl）强制留当前站。
   (function () {
     try {
       var VERCEL_HOST = 'cju-leave-demo.vercel.app';
@@ -39,19 +39,19 @@
         if (location.hash) t += location.hash;
         return t;
       }
-      if (force === 'pxxl') return;
+      if (force === 'pxxl' || force === 'netlify' || force === 'fallback') return;
       if (force === 'vercel') { location.replace(targetUrl()); return; }
       var KEY = 'cju-leave-route-v1';
       var TTL = 12 * 60 * 60 * 1000;
       var cached = null;
       try { cached = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
       var now = Date.now();
-      if (cached && cached.dest === 'pxxl' && now - (cached.at || 0) < TTL) return;
+      if (cached && (cached.dest === 'pxxl' || cached.dest === 'netlify' || cached.dest === 'fallback') && now - (cached.at || 0) < TTL) return;
       var timeoutMs = (cached && cached.dest === 'vercel') ? 1500 : 3000;
       var done = false;
       function stay() {
         if (done) return; done = true;
-        try { localStorage.setItem(KEY, JSON.stringify({ dest: 'pxxl', at: Date.now() })); } catch (e) {}
+        try { localStorage.setItem(KEY, JSON.stringify({ dest: 'fallback', at: Date.now() })); } catch (e) {}
       }
       function go() {
         if (done) return; done = true;
