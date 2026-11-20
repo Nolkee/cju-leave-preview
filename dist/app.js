@@ -4,6 +4,7 @@ const screen = document.querySelector('#screen');
 const modal = document.querySelector('#modal');
 const toast = document.querySelector('#toast');
 const storageKey = 'leave-practice-records-v1';
+const usageHelpKey = 'leave-usage-help-dismissed-v1';
 const currentTerm = '2026–2027学年第1学期';
 const seed = {
   id: 'example', term: '2025–2026学年第1学期', phone: '00000000000',
@@ -383,6 +384,27 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
   modal.showModal();
 }
 
+function showUsageHelp() {
+  try {
+    if (localStorage.getItem(usageHelpKey) === '1') return;
+  } catch {
+    // The help stays available when browser storage is blocked.
+  }
+
+  openDialog('使用帮助', `<dl class="usage-help">
+    <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
+    <div><dt>方法二（推荐）</dt><dd>在 Safari 中点「分享 → 添加到主屏幕」。下次点紫底「假」字图标即可打开。</dd></div>
+  </dl>`,
+  '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>',
+  () => {
+    try {
+      localStorage.setItem(usageHelpKey, '1');
+    } catch {
+      announce('浏览器无法保存「不再提示」设置');
+    }
+  });
+}
+
 function confirmApplication(data, files) {
   let signed = false;
   openDialog('确认提交', `<p class="helper">学生签字（选填）</p><canvas id="signature" width="840" height="280" aria-label="学生签字区"></canvas><button type="button" class="btn" id="clear-signature">清空签字</button>`,
@@ -535,4 +557,7 @@ window.addEventListener('storage', event => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) void updateRecords();
 });
-void updateRecords().then(() => render());
+void updateRecords().then(() => {
+  render();
+  showUsageHelp();
+});
