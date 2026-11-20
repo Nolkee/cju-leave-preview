@@ -82,15 +82,45 @@ function badge(status) {
 function home() {
   return `<section class="hero">
     <div><span class="eyebrow">学生事务</span><h1 tabindex="-1">用户大厅</h1><p>在浏览器中练习提交请假、查看审批和销假。</p></div>
-    <div class="student">
-      <div class="student-top"><span class="avatar" aria-hidden="true">林</span><div><strong>林同学</strong><br><small>演示学生</small></div></div>
-      <dl><div><dt>学号</dt><dd>DEMO-2404</dd></div><div><dt>班级</dt><dd>计算机 2404 班</dd></div></dl>
-    </div>
+    ${studentCard()}
   </section>
   <div class="home-grid">
-    <section class="panel"><h2>常用功能</h2><div class="home-entry"><span class="tile-icon" aria-hidden="true"></span><div><h3>请假申请</h3><p>查看记录或发起一条新申请</p></div><a class="btn primary" href="#records">进入请假</a></div></section>
-    <section class="panel"><h2>演练说明</h2><p>填写演示资料即可体验流程。申请记录和材料保存在当前浏览器。</p></section>
+    ${leaveEntry('常用功能')}
+    <section class="panel">
+      <div class="notice-tabs" aria-label="消息分类">
+        <button type="button" data-message="notice" aria-pressed="true">通知事项</button>
+        <button type="button" data-message="tasks" aria-pressed="false">待办事项</button>
+        <button type="button" data-message="announcements" aria-pressed="false">公示事项</button>
+      </div>
+      <div id="message-panel" aria-live="polite">${homeMessage('notice')}</div>
+    </section>
   </div>`;
+}
+
+function homeMessage(type) {
+  if (type === 'notice') return '<h3>演练说明</h3><p>填写演示资料即可体验流程。申请记录和材料保存在当前浏览器。</p>';
+  if (type === 'announcements') return '<p>暂无演练公示</p>';
+  const pending = records.filter(record => record.status === 'pending').length;
+  return pending ? `<p>有 ${pending} 条演练申请待审批。</p><a class="back" href="#records">查看请假记录</a>` : '<p>暂无待办事项</p>';
+}
+
+function studentCard() {
+  return `<div class="student">
+    <div class="student-top"><span class="avatar" aria-hidden="true">林</span><div><strong>林同学</strong><br><small>演示学生</small></div></div>
+    <dl><div><dt>学号</dt><dd>DEMO-2404</dd></div><div><dt>班级</dt><dd>计算机 2404 班</dd></div></dl>
+  </div>`;
+}
+
+function leaveEntry(title) {
+  return `<section class="panel"><h2>${title}</h2><a class="home-entry" href="#records" aria-label="进入请假">
+    <span class="tile-icon" aria-hidden="true"></span><div><h3>请假申请</h3><p>查看记录或发起一条新申请</p></div><span class="btn primary" aria-hidden="true">进入请假</span>
+  </a></section>`;
+}
+
+function mobileTabs(page) {
+  return `<nav class="mobile-tabs" aria-label="大厅导航">${[
+    ['home', '首页'], ['functions', '功能列表'], ['profile', '个人中心'],
+  ].map(([route, title]) => `<a href="#${route}"${route === page ? ' aria-current="page"' : ''}>${title}</a>`).join('')}</nav>`;
 }
 
 function list() {
@@ -98,19 +128,19 @@ function list() {
   const cards = records.map(record => {
     const id = escapeHtml(record.id);
     return `<article class="record">
-      <div class="split"><h2>${escapeHtml(record.reason)}</h2>${badge(record.status)}</div>
-      ${metadata([
+      <h2>${escapeHtml(record.reason)}</h2>
+      <div class="record-body">${badge(record.status)}${metadata([
         ['请假类型', escapeHtml(record.type)],
         ['请假时间', `${dateText(record.start)} 至<br>${dateText(record.end)}`],
         ['外出地点', record.off === '是' ? escapeHtml(record.destination) : '未离校'],
-      ])}
+      ])}</div>
       <div class="actions">
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
         ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
       </div>
     </article>`;
   }).join('');
-  return `<div class="narrow">
+  return `<div class="narrow leave-list">
     ${heading('请假申请', '用户大厅')}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
@@ -129,7 +159,7 @@ function select(name, label, options) {
 }
 
 function choice(name, label) {
-  return `<fieldset><legend>${label}${star}</legend><div class="segment">
+  return `<fieldset class="choice-field"><legend>${label}${star}</legend><div class="segment">
     <label><input type="radio" name="${name}" value="是">是</label>
     <label><input type="radio" name="${name}" value="否" checked>否</label>
   </div></fieldset>`;
@@ -140,16 +170,20 @@ function form() {
   return `<div class="narrow">
     ${heading('请假申请', '请假记录')}
     <form id="application" autocomplete="off">
-      <section class="panel"><h2>请假信息</h2>
-        <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假 <strong>${count} 次</strong></span></div>
+      <section class="panel application-info"><h2>请假信息</h2>
+        <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong>${count}</strong></span></div>
         <div class="form-grid">
           ${field('phone', '个人手机号', '<input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{11}" title="请输入 11 位数字" maxlength="11" value="00000000000" required><small data-count="phone"></small>', 'full')}
           ${select('type', '请假类型', ['校内请假', '校外请假'])}
           ${select('category', '事由类型', ['病假', '事假', '其他'])}
-          ${field('start', '开始时间', '<input id="start" name="start" type="datetime-local" required>')}
-          ${field('end', '结束时间', '<input id="end" name="end" type="datetime-local" required>')}
-          <p class="helper full">请假时长 <output id="duration" for="start end">0小时0分钟</output></p>
-          ${field('reason', '请假原因', '<textarea id="reason" name="reason" maxlength="100" placeholder="请输入请假原因" required></textarea><small data-count="reason"></small>', 'full')}
+          <fieldset class="time-range full" data-time-open="false"><legend>请假时间${star}</legend>
+            <button type="button" class="time-trigger" aria-controls="time-inputs" aria-expanded="false">请选择</button>
+            <div class="time-inputs" id="time-inputs">
+            <label>开始时间 <input id="start" name="start" type="datetime-local" required></label>
+            <label>结束时间 <input id="end" name="end" type="datetime-local" required></label>
+          </div></fieldset>
+          <p class="duration-row full">请假时长 <output id="duration" for="start end">0小时0分钟</output></p>
+          ${field('reason', '请假原因', '<textarea id="reason" name="reason" maxlength="100" placeholder="请输入请假原因" required></textarea><small data-count="reason"></small>', 'full reason-field')}
           ${field('guardian', '监护人姓名', '<input id="guardian" name="guardian" maxlength="30" placeholder="请输入演示姓名" required><small data-count="guardian"></small>')}
           ${field('guardianPhone', '监护人电话', '<input id="guardianPhone" name="guardianPhone" type="tel" inputmode="tel" pattern="[0-9\\-]{7,13}" maxlength="13" title="请输入 7 至 13 位数字或短横线" placeholder="例如 00000000000" required><small data-count="guardianPhone"></small>')}
           ${choice('informed', '告知监护人')}
@@ -157,7 +191,7 @@ function form() {
           <div class="full" id="destination-row" hidden>${field('destination', '外出地点', '<input id="destination" name="destination" maxlength="100" placeholder="请输入外出地点" disabled>')}</div>
         </div>
       </section>
-      <section class="panel"><h2>请假材料</h2>
+      <section class="panel application-material"><h2>请假材料</h2>
         <p class="notice">请提交相关证明。演练时可添加图片，也可跳过。</p>
         <label class="btn file-picker"><span>选择图片</span><input id="material" aria-label="选择图片" type="file" accept="image/*" multiple></label>
         <div id="uploads" class="upload-list"></div>
@@ -225,8 +259,15 @@ function wireForm(application) {
   const controls = application.elements;
   const uploadList = application.querySelector('#uploads');
   const submit = application.querySelector('#submit-application');
+  const timeRange = application.querySelector('.time-range');
+  const timeToggle = application.querySelector('.time-trigger');
   const attachments = [];
   const updateUploads = () => { uploadList.innerHTML = pictures(attachments, true); };
+
+  function setTimeOpen(open) {
+    timeRange.dataset.timeOpen = String(open);
+    timeToggle.setAttribute('aria-expanded', String(open));
+  }
 
   function update() {
     for (const counter of application.querySelectorAll('[data-count]')) {
@@ -236,6 +277,8 @@ function wireForm(application) {
     const total = minutes(controls.start.value, controls.end.value);
     controls.end.setCustomValidity(controls.start.value && controls.end.value && !total ? '结束时间必须晚于开始时间' : '');
     application.querySelector('#duration').textContent = total ? duration(total) : '0小时0分钟';
+    const dates = [controls.start.value, controls.end.value].filter(Boolean);
+    timeToggle.textContent = dates.length ? dates.map(value => value.replace('T', ' ')).join(' 至 ') : '请选择';
     const offCampus = controls.off.value === '是';
     application.querySelector('#destination-row').hidden = !offCampus;
     controls.destination.disabled = !offCampus;
@@ -248,6 +291,8 @@ function wireForm(application) {
 
   application.addEventListener('input', update);
   application.addEventListener('change', update);
+  timeToggle.addEventListener('click', () => setTimeOpen(timeRange.dataset.timeOpen === 'false'));
+  timeRange.addEventListener('invalid', () => setTimeOpen(true), true);
   application.addEventListener('click', event => {
     const remove = event.target.closest('[data-remove]');
     if (!remove) return;
@@ -349,11 +394,23 @@ function confirmApplication(data, files) {
 }
 
 function render(restoreFocus = false) {
-  const [page, id] = location.hash.slice(1).split('/');
+  const [requestedPage, id] = location.hash.slice(1).split('/');
   const record = records.find(item => item.id === id);
-  const homeScreen = !['records', 'apply', 'detail'].includes(page);
-  screen.innerHTML = homeScreen ? home() : page === 'apply' ? form() : page === 'detail' && record ? details(record) : list();
-  document.title = `${screen.querySelector('h1').textContent} · 请假练习台`;
+  const page = ['home', 'functions', 'profile', 'records', 'apply', 'detail'].includes(requestedPage) ? requestedPage : 'home';
+  const homeScreen = ['home', 'functions', 'profile'].includes(page);
+  const views = {
+    home, functions: () => `${heading('功能列表', '用户大厅')}${leaveEntry('学生事务')}`,
+    profile: () => `${heading('个人中心', '用户大厅')}${studentCard()}`,
+    records: list, apply: form, detail: () => record ? details(record) : list(),
+  };
+  screen.innerHTML = views[page]() + (homeScreen ? mobileTabs(page) : '');
+  screen.dataset.page = page;
+  const title = screen.querySelector('h1');
+  document.title = `${title.textContent} · 请假练习台`;
+  document.querySelector('#mobile-title').textContent = title.textContent;
+  const mobileBack = document.querySelector('#mobile-back');
+  mobileBack.hidden = homeScreen;
+  mobileBack.href = page === 'records' ? '#home' : '#records';
   document.querySelectorAll('[data-nav]').forEach(link => {
     if (link.dataset.nav === (homeScreen ? 'home' : 'records')) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
@@ -362,11 +419,17 @@ function render(restoreFocus = false) {
   if (application) wireForm(application);
   if (restoreFocus) {
     window.scrollTo(0, 0);
-    screen.querySelector('h1').focus({preventScroll: true});
+    title.focus({preventScroll: true});
   }
 }
 
 screen.addEventListener('click', event => {
+  const message = event.target.closest('[data-message]');
+  if (message) {
+    screen.querySelectorAll('[data-message]').forEach(button => button.setAttribute('aria-pressed', String(button === message)));
+    screen.querySelector('#message-panel').innerHTML = homeMessage(message.dataset.message);
+    return;
+  }
   const button = event.target.closest('[data-proof], [data-transition]');
   if (!button) return;
   const record = records.find(item => item.id === (button.dataset.proof || button.dataset.transition));
