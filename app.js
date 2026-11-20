@@ -10,7 +10,7 @@ const currentTerm = '2026–2027学年第1学期';
 const seed = {
   id: 'example', term: '2025–2026学年第1学期', phone: '00000000000',
   type: '校内请假', category: '病假', start: '2025-12-15T03:23', end: '2025-12-15T12:00',
-  reason: '身体不适', guardian: '林先生', guardianPhone: '00000000000',
+  reason: '身体不适', guardian: '🧊', guardianPhone: '00000000000',
   informed: '是', off: '否', destination: '', files: [], signature: '', count: 1,
   status: 'closed', closedAt: '2025-12-15T19:53:42', closeMethod: '自动销假',
 };
@@ -239,7 +239,7 @@ function form() {
           </div></fieldset>
           <p class="duration-row full">请假时长 <output id="duration" for="start end">0小时0分钟</output></p>
           ${field('reason', '请假原因', '<textarea id="reason" name="reason" maxlength="100" placeholder="请输入请假原因" required></textarea><small data-count="reason"></small>', 'full reason-field')}
-          ${field('guardian', '监护人姓名', '<input id="guardian" name="guardian" maxlength="30" placeholder="请输入" value="🧊" required><small data-count="guardian"></small>')}
+          ${field('guardian', '监护人姓名', '<input id="guardian" name="guardian" maxlength="30" placeholder="请输入" required><small data-count="guardian"></small>')}
           ${field('guardianPhone', '监护人电话', '<input id="guardianPhone" name="guardianPhone" type="tel" inputmode="tel" pattern="[0-9\\-]{7,13}" maxlength="13" title="请输入 7 至 13 位数字或短横线" placeholder="例如 00000000000" required><small data-count="guardianPhone"></small>')}
           ${choice('informed', '告知监护人')}
           ${choice('off', '是否离校')}
