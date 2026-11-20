@@ -228,7 +228,7 @@ function form() {
       <section class="panel application-info"><h2>请假信息</h2>
         <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong id="term-count">${termCount()}</strong></span></div>
         <div class="form-grid">
-          ${field('phone', '个人手机号', '<input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{11}" title="请输入 11 位数字" maxlength="11" value="00000000000" required><small data-count="phone"></small>', 'full')}
+          ${field('phone', '个人手机号', '<input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{11}" title="请输入 11 位数字" maxlength="11" value="13389734623" required><small data-count="phone"></small>', 'full')}
           ${select('type', '请假类型', ['校内请假', '校外请假'])}
           ${select('category', '事由类型', ['病假', '事假', '其他'])}
           <fieldset class="time-range full" data-time-open="false"><legend>请假时间${star}</legend>
