@@ -43,7 +43,14 @@ function escapeHtml(value) {
 function announce(message) {
   clearTimeout(toastTimer);
   toast.textContent = message;
-  toastTimer = setTimeout(() => { toast.textContent = ''; }, 3600);
+  // 用 popover 把提示提到最顶层，盖在弹框遮罩之上
+  if (message) {
+    try { toast.showPopover(); } catch {}
+  }
+  toastTimer = setTimeout(() => {
+    toast.textContent = '';
+    try { toast.hidePopover(); } catch {}
+  }, 3600);
 }
 
 function storeRecords(next) {
@@ -388,7 +395,7 @@ const titleHintKey = 'leave-title-hint-count-v1';
 const TITLE_HINT_MAX = 3;
 const usageHelpHtml = `<p class="usage-notice">此项目仅用于学习交流，请勿用于虚假请假、伪造请假证明或冒充正式校务系统。</p>
   <dl class="usage-help">
-    <div><dt>方法一</dt><dd>直接在浏览器中打开<a href="https://cju-leave-preview.netlify.app/" class="copy-link" title="点击复制网址">网址</a>。</dd></div>
+    <div><dt>方法一</dt><dd>直接在浏览器中打开<a href="https://cju-leave-preview.netlify.app/" class="copy-link" aria-label="点击复制网址">网址</a>。</dd></div>
     <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中：
       <ol class="help-steps">
         <li>打开「分享」或「更多」菜单</li>
