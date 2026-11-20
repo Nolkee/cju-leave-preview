@@ -388,8 +388,13 @@ const titleHintKey = 'leave-title-hint-count-v1';
 const TITLE_HINT_MAX = 3;
 const usageHelpHtml = `<p class="usage-notice">此项目仅用于学习交流，请勿用于虚假请假、伪造请假证明或冒充正式校务系统。</p>
   <dl class="usage-help">
-    <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
-    <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中，打开「分享」或「更多」菜单，选择「添加到主屏幕」或「创建快捷方式」。下次点带有企业微信图标的「请假申请」快捷方式即可打开。</dd></div>
+    <div><dt>方法一</dt><dd>直接在浏览器中打开<a href="https://cju-leave-preview.netlify.app/" class="copy-link" title="点击复制网址">网址</a>。</dd></div>
+    <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中：
+      <ol class="help-steps">
+        <li>打开「分享」或「更多」菜单</li>
+        <li>选择「添加到主屏幕」或「创建快捷方式」。</li>
+      </ol>
+      下次点桌面带有企业微信图标的「请假申请」快捷方式即可打开～</dd></div>
   </dl>`;
 const githubMarkSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`;
 
@@ -622,6 +627,36 @@ document.querySelector('#mobile-close').addEventListener('click', () => {
 document.querySelector('#mobile-title').addEventListener('click', () => {
   hideTitleHint();
   showCombinedPopup();
+});
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+// 使用帮助里的「网址」链接：点一下就复制网址，不跳转
+modal.addEventListener('click', async event => {
+  const link = event.target.closest('.copy-link');
+  if (!link) return;
+  event.preventDefault();
+  const ok = await copyText(link.href);
+  announce(ok ? '网址已复制' : '复制失败，请长按链接复制');
 });
 void updateRecords().then(() => {
   render();
