@@ -1,0 +1,8 @@
+name = "cju-leave-preview"
+main = "worker.js"
+compatibility_date = "2026-11-20"
+
+# 全站计数用的 KV 命名空间：在 Cloudflare 控制台创建后，把真实 ID 填到下面，取消注释
+# [[kv_namespaces]]
+# binding = "COUNTER"
+# id = "PASTE_KV_NAMESPACE_ID_HERE"
