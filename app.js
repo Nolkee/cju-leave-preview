@@ -5,6 +5,7 @@ const modal = document.querySelector('#modal');
 const toast = document.querySelector('#toast');
 const storageKey = 'leave-practice-records-v1';
 const usageHelpKey = 'leave-usage-help-dismissed-v1';
+const starPromptKey = 'leave-star-prompt-dismissed-v1';
 const currentTerm = '2026–2027学年第1学期';
 const seed = {
   id: 'example', term: '2025–2026学年第1学期', phone: '00000000000',
@@ -438,7 +439,14 @@ function showUsageHelp() {
 
 function showStarPrompt() {
   openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinksHtml(),
-    '<button value="ok" class="btn primary" autofocus>知道了</button>');
+    '<button value="confirm" class="btn">不再显示</button><button value="ok" class="btn primary" autofocus>知道了</button>',
+    () => {
+      try {
+        localStorage.setItem(starPromptKey, '1');
+      } catch {
+        announce('浏览器无法保存「不再显示」设置');
+      }
+    });
   bindStarLinks();
 }
 
@@ -667,9 +675,23 @@ modal.addEventListener('click', async event => {
 });
 void updateRecords().then(() => {
   render();
-  // 打开界面先弹使用说明，点完 OK 或「不再提示」之后再弹 Star / Follow，两个都关掉就到主界面
+  // 打开界面先弹使用说明，点完 OK 或「不再提示」之后再弹 Star / Follow，两个都关掉就到主界面；
+  // Star 点了「不再显示」后以后不再弹
   let helpDismissed = false;
-  try { helpDismissed = localStorage.getItem(usageHelpKey) === '1'; } catch {}
+  let starDismissed = false;
+  try {
+    helpDismissed = localStorage.getItem(usageHelpKey) === '1';
+    starDismissed = localStorage.getItem(starPromptKey) === '1';
+  } catch {}
+  if (starDismissed) {
+    if (helpDismissed) {
+      showTitleHint();
+    } else {
+      showUsageHelp();
+      modal.addEventListener('close', () => showTitleHint(), { once: true });
+    }
+    return;
+  }
   if (helpDismissed) {
     showStarPrompt();
     modal.addEventListener('close', () => showTitleHint(), { once: true });
