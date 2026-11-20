@@ -110,6 +110,8 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .file-picker input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
 .end { text-align: center; margin: 18px 0; color: #96989c; font-size: 13px; }
 .star-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 4px 0 6px; }
+.star-section { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 2px; }
+.star-heading { font-size: 15px; font-weight: 700; margin: 16px 0 10px; }
 .star-links .btn { min-height: 36px; font-size: 13px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .full { grid-column: 1 / -1; }

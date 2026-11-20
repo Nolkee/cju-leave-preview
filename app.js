@@ -384,33 +384,36 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
   modal.showModal();
 }
 
-function showUsageHelp() {
-  try {
-    if (localStorage.getItem(usageHelpKey) === '1') return;
-  } catch {
-    // The help stays available when browser storage is blocked.
-  }
-
-  openDialog('使用帮助', `<dl class="usage-help">
-    <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
-    <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中，打开「分享」或「更多」菜单，选择「添加到主屏幕」或「创建快捷方式」。下次点带有企业微信图标的「请假申请」快捷方式即可打开。</dd></div>
-  </dl>`,
-  '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>OK</button>',
-  () => {
-    try {
-      localStorage.setItem(usageHelpKey, '1');
-    } catch {
-      announce('浏览器无法保存「不再提示」设置');
-    }
-  });
-}
-
-function showStarPrompt() {
-  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', `<div class="star-links">
+function showWelcomePopup() {
+  // 使用帮助和 Star / Follow 提示放在同一个弹框里，每次打开界面都弹一次。
+  // 使用帮助只在首次打开时出现，点「不再提示」后，以后只弹 Star / Follow。
+  const starLinks = `<div class="star-links">
       <a class="btn" href="https://github.com/Nolkee/cju-leave-preview" target="_blank" rel="noopener">★ Star</a>
       <a class="btn" href="https://github.com/Nolkee" target="_blank" rel="noopener">Follow</a>
-    </div>`,
-    '<button value="ok" class="btn primary" autofocus>知道了</button>');
+    </div>`;
+  let helpDismissed = false;
+  try { helpDismissed = localStorage.getItem(usageHelpKey) === '1'; } catch {}
+  if (helpDismissed) {
+    openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinks,
+      '<button value="ok" class="btn primary" autofocus>知道了</button>');
+  } else {
+    openDialog('使用帮助', `<dl class="usage-help">
+    <div><dt>方法一</dt><dd>每次在浏览器中打开这个网页。</dd></div>
+    <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中，打开「分享」或「更多」菜单，选择「添加到主屏幕」或「创建快捷方式」。下次点带有企业微信图标的「请假申请」快捷方式即可打开。</dd></div>
+  </dl>
+  <div class="star-section">
+    <p class="star-heading">觉得好用，欢迎点个 Star 或 Follow 我～</p>
+    ${starLinks}
+  </div>`,
+    '<button value="confirm" class="btn">不再提示</button><button value="ok" class="btn primary" autofocus>知道了</button>',
+    () => {
+      try {
+        localStorage.setItem(usageHelpKey, '1');
+      } catch {
+        announce('浏览器无法保存「不再提示」设置');
+      }
+    });
+  }
   modal.querySelectorAll('.star-links a').forEach(link => {
     link.addEventListener('click', () => modal.close());
   });
@@ -575,13 +578,5 @@ document.querySelector('#mobile-close').addEventListener('click', () => {
 });
 void updateRecords().then(() => {
   render();
-  // 每次打开界面都弹一次 Star / Follow 提示；首次打开先弹使用帮助，关掉之后再弹这个
-  let helpDismissed = false;
-  try { helpDismissed = localStorage.getItem(usageHelpKey) === '1'; } catch {}
-  if (helpDismissed) {
-    showStarPrompt();
-  } else {
-    showUsageHelp();
-    modal.addEventListener('close', () => showStarPrompt(), { once: true });
-  }
+  showWelcomePopup();
 });
