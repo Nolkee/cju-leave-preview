@@ -42,12 +42,27 @@ button:disabled { cursor: wait; opacity: .64; }
 :focus-visible { outline: 3px solid #5c63d7; outline-offset: 3px; }
 [hidden] { display: none !important; }
 h1, h2, h3, p, dl, dd { margin: 0; }
-.topbar { position: sticky; top: 0; z-index: 3; background: #fff; border-bottom: 1px solid var(--line); }
-.bar-inner { max-width: 1064px; min-height: 68px; margin: auto; padding: 0 24px; display: flex; align-items: center; gap: 26px; }
+/* 全端统一手机界面：黑顶栏 + 手机宽度居中，不再分 PC / 手机两套 */
+.topbar { position: sticky; top: 0; z-index: 3; background: #000; color: #fff; border: 0; }
+.bar-inner { display: none; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 750; white-space: nowrap; }
 .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #384db9; color: #fff; font-size: 15px; }
-.mobile-bar { display: none; }
-#screen { max-width: 1064px; margin: auto; padding: 38px 24px 44px; }
+.mobile-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  max-width: 480px;
+  margin: auto;
+  min-height: calc(48px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 13px 0;
+}
+.mobile-nav { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-self: start; }
+#mobile-title { grid-column: 2; font-weight: 600; font-size: 17px; }
+#mobile-back { display: grid; place-items: center; min-width: 44px; min-height: 44px; }
+#mobile-back span { width: 10px; height: 10px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
+#mobile-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; }
+#mobile-close span { font-size: 26px; line-height: 1; font-weight: 400; }
+#screen { max-width: 480px; margin: auto; padding: 12px 15px 26px; }
 #screen:has(.footer-actions) { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 .narrow { max-width: 760px; margin-inline: auto; }
 .panel, .record { border: 1px solid var(--line); background: var(--card); border-radius: 18px; padding: 24px; min-width: 0; }
@@ -147,7 +162,7 @@ dialog::backdrop { background: #191f4390; overflow: hidden; overscroll-behavior:
 canvas { width: 100%; height: 140px; display: block; border: 1px dashed #9da8d7; background: #f8f9ff; border-radius: 10px; touch-action: none; margin: 12px 0 6px; }
 .proof { padding: 14px; background: var(--soft); border-radius: 10px; margin-top: 14px; }
 #toast:not(:empty) { position: fixed; z-index: 4; bottom: 78px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 30px); padding: 10px 16px; border-radius: 9px; background: #252b58; color: #fff; font-size: 14px; }
-@media (max-width: 650px) {
+@media (min-width: 0px) {
   :root { scroll-padding-top: calc(62px + env(safe-area-inset-top)); }
   .topbar { background: #000; color: #fff; border: 0; }
   .bar-inner { display: none; }
@@ -164,7 +179,7 @@ canvas { width: 100%; height: 140px; display: block; border: 1px dashed #9da8d7;
   #screen { padding: 12px 15px 26px; }
   .page-head { position: absolute; width: 1px; height: 1px; padding: 0; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
   .page-head .back { display: none; }
-  .footer-actions { width: 100%; padding: 7px 12px max(7px, env(safe-area-inset-bottom)); background: #fff; }
+  .footer-actions { width: min(480px, 100%); padding: 7px 12px max(7px, env(safe-area-inset-bottom)); background: #fff; }
   .footer-actions .primary { flex: 1; min-height: 44px; font-size: 16px; font-weight: 600; border-radius: 13px; }
   .footer-actions .primary:hover { background: var(--accent); }
   .panel, .record { padding: 14px 15px; border-radius: 12px; }

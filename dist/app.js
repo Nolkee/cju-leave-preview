@@ -465,7 +465,7 @@ function render(restoreFocus = false) {
   const title = screen.querySelector('h1');
   document.title = title.textContent;
   document.querySelector('#mobile-title').textContent = title.textContent;
-  document.querySelector('#mobile-back').hidden = page === 'records';
+  document.querySelector('#mobile-back').hidden = false;
   const application = screen.querySelector('#application');
   if (application) wireForm(application);
   if (restoreFocus) {
@@ -556,6 +556,11 @@ window.addEventListener('storage', event => {
 });
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) void updateRecords();
+});
+document.querySelector('#mobile-close').addEventListener('click', () => {
+  // 浏览器标签页一般不允许脚本直接关闭，关不掉就回首页
+  window.close();
+  setTimeout(() => { location.hash = '#records'; }, 300);
 });
 void updateRecords().then(() => {
   render();
