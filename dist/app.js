@@ -519,23 +519,36 @@ function bindStarLinks() {
 }
 
 function bonusButtonHtml() {
-  return `<div class="bonus-row"><button type="button" class="btn bonus-btn" data-bonus>🎁 Bonus</button></div>`;
+  return `<button type="button" class="bonus-link" data-bonus>🎁 Bonus</button>`;
 }
 
-async function openBonusPopup() {
-  const data = await callCounter('/bonus');
-  const latest = data || counterTotals;
+function bonusPopupHtml(latest) {
   const num = n => (typeof n === 'number' && n > 0 ? String(n) : '—');
   const bonusRank = latest && typeof latest.myBonusRank === 'number' ? latest.myBonusRank : null;
   const visitorRank = latest && typeof latest.myVisitorRank === 'number' ? latest.myVisitorRank : null;
-  openDialog('Bonus', `<div class="bonus-result">
+  return `<div class="bonus-result">
     <p>你是</p>
-    <p>第 <strong>${num(bonusRank)}</strong> 个点击 Bonus</p>
-    <p>第 <strong>${num(visitorRank)}</strong> 个访问此网站</p>
+    <p>第 <strong data-bonus-rank>${bonusRank === null ? '…' : num(bonusRank)}</strong> 个点击 Bonus</p>
+    <p>第 <strong data-visitor-rank>${visitorRank === null ? '…' : num(visitorRank)}</strong> 个访问此网站</p>
     <p>的 CJUer</p>
     <p class="bonus-visits">这是你第 ${visitCount} 次访问本站</p>
-  </div>`,
-  '<button value="ok" class="btn primary" autofocus>知道了</button>');
+  </div>`;
+}
+
+async function openBonusPopup() {
+  // 弹窗和彩带一起出现：先开弹窗（数先占位），彩带同步飞，数到了再填
+  openDialog('Bonus', bonusPopupHtml(counterTotals),
+    '<button value="ok" class="btn primary" autofocus>知道了</button>');
+  fireConfetti();
+  const data = await callCounter('/bonus');
+  const latest = data || counterTotals;
+  if (!modal.open) return;
+  const setRank = (attr, value) => {
+    const el = modal.querySelector(`[data-${attr}]`);
+    if (el) el.textContent = (typeof value === 'number' && value > 0) ? String(value) : '—';
+  };
+  setRank('bonus-rank', latest && latest.myBonusRank);
+  setRank('visitor-rank', latest && latest.myVisitorRank);
 }
 
 // 彩带飞溅：手写小彩带，不走 CDN，离线也能飞
@@ -611,8 +624,8 @@ function showUsageHelp() {
 }
 
 function showStarPrompt() {
-  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', `${starLinksHtml()}${bonusButtonHtml()}`, 
-    '<button value="confirm" class="btn">不再显示</button><button value="ok" class="btn primary" autofocus>知道了</button>',
+  openDialog('觉得好用，欢迎点个 Star 或 Follow 我～', starLinksHtml(), 
+    `${bonusButtonHtml()}<button value="confirm" class="btn">不再显示</button><button value="ok" class="btn primary" autofocus>知道了</button>`, 
     () => {
       try {
         localStorage.setItem(starPromptKey, '1');
@@ -629,9 +642,8 @@ function showCombinedPopup() {
   <div class="star-section">
     <p class="star-heading">觉得好用，欢迎点个 Star 或 Follow 我～</p>
     ${starLinksHtml()}
-  </div>
-  ${bonusButtonHtml()}`,
-  '<button value="ok" class="btn primary" autofocus>OK</button>');
+  </div>`,
+  `${bonusButtonHtml()}<button value="ok" class="btn primary" autofocus>OK</button>`);
   bindStarLinks();
 }
 
@@ -852,7 +864,6 @@ modal.addEventListener('click', async event => {
 modal.addEventListener('click', event => {
   if (!event.target.closest('[data-bonus]')) return;
   modal.close();
-  fireConfetti();
   openBonusPopup();
 });
 void updateRecords().then(() => {
