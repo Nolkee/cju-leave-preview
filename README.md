@@ -21,3 +21,13 @@ python3 -m http.server 4173
 - `index.html`、`style.css`、`app.js` 是网页入口、样式和交互逻辑。
 - `dist/` 是可直接部署的静态文件。修改源码后，将对应文件同步到 `dist/`。
 - `site.webmanifest` 和图标文件用于网页快捷方式。
+
+## 双线路（Vercel 优先，Pxxl 兜底）
+
+`*.vercel.app` 在国内会被 DNS 污染，不翻墙打不开，所以加了智能切换：
+
+- 主站：`https://cju-leave-demo.vercel.app/`（Vercel）
+- 兜底站：Pxxl 静态站（`*.pxxlspace.cv`，部署 `dist/`）
+- 入口请分享 Pxxl 地址。Pxxl 上的 `index.html` 会在打开时用 3 秒试探 Vercel 通不通，通就跳到 Vercel（保留 `#` 路由），不通或超时就留在 Pxxl 正常显示。
+- 上次结果记在浏览器 `localStorage`（`cju-leave-route-v1`，12 小时有效），上次走 Pxxl 就直接留，不再等 3 秒。
+- 手动强制：`?route=vercel` 直接去 Vercel，`?route=pxxl` 强制留当前站。本地预览（localhost）不做探测。

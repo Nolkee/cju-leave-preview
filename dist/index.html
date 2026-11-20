@@ -9,6 +9,63 @@
   <link rel="icon" href="/favicon.ico?v=13" sizes="16x16 32x32 48x48">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="style.css?v=12">
+  <script>
+  // 双线路智能切换：Vercel 优先，Pxxl 兜底
+  // 只在非 Vercel 域名上运行（主要是 Pxxl 的 *.pxxlspace.cv）。
+  // 在 Vercel 本身、localhost 预览时直接跳过，不做探测。
+  // 逻辑：用一张 Vercel 的 favicon 图片试探 Vercel 通不通，
+  // 通就跳到 Vercel（保留 hash，如 #records），不通或超时就留在当前站正常显示。
+  // 上次结果记在 localStorage，12 小时内上次走 Pxxl 就直接留，不再等 3 秒。
+  // 手动强制：?route=vercel 直接去 Vercel，?route=pxxl 强制留当前站。
+  (function () {
+    try {
+      var VERCEL_HOST = 'cju-leave-demo.vercel.app';
+      var VERCEL_BASE = 'https://' + VERCEL_HOST + '/';
+      var host = location.hostname || '';
+      if (!host || host === 'localhost' || host === '127.0.0.1') return;
+      if (host === VERCEL_HOST || host.endsWith('.vercel.app')) return;
+      var params = new URLSearchParams(location.search || '');
+      var force = params.get('route');
+      function cleanSearch() {
+        var sp = new URLSearchParams(location.search || '');
+        sp.delete('route');
+        var qs = sp.toString();
+        return qs ? '?' + qs : '';
+      }
+      function targetUrl() {
+        var t = VERCEL_BASE;
+        if (location.pathname && location.pathname !== '/') t += location.pathname.replace(/^\//, '');
+        t += cleanSearch();
+        if (location.hash) t += location.hash;
+        return t;
+      }
+      if (force === 'pxxl') return;
+      if (force === 'vercel') { location.replace(targetUrl()); return; }
+      var KEY = 'cju-leave-route-v1';
+      var TTL = 12 * 60 * 60 * 1000;
+      var cached = null;
+      try { cached = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+      var now = Date.now();
+      if (cached && cached.dest === 'pxxl' && now - (cached.at || 0) < TTL) return;
+      var timeoutMs = (cached && cached.dest === 'vercel') ? 1500 : 3000;
+      var done = false;
+      function stay() {
+        if (done) return; done = true;
+        try { localStorage.setItem(KEY, JSON.stringify({ dest: 'pxxl', at: Date.now() })); } catch (e) {}
+      }
+      function go() {
+        if (done) return; done = true;
+        try { localStorage.setItem(KEY, JSON.stringify({ dest: 'vercel', at: Date.now() })); } catch (e) {}
+        location.replace(targetUrl());
+      }
+      var img = new Image();
+      var timer = setTimeout(stay, timeoutMs);
+      img.onload = function () { clearTimeout(timer); go(); };
+      img.onerror = function () { clearTimeout(timer); stay(); };
+      img.src = VERCEL_BASE + 'favicon.ico?v=13&_t=' + now;
+    } catch (e) {}
+  })();
+  </script>
   <script src="app.js?v=13" defer></script>
 </head>
 <body>
