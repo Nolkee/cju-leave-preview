@@ -217,10 +217,7 @@ function list() {
     const id = escapeHtml(record.id);
     const headingControls = reordering
       ? `<span class="drag-handle" data-drag="${id}" title="按住拖动调整顺序" aria-label="拖动调整顺序">⋮⋮</span>`
-      : `<details class="record-options">
-          <summary aria-label="更多操作"><span aria-hidden="true">⋯</span></summary>
-          <div class="record-option-list"><a class="btn" href="#edit/${id}">编辑</a>${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
-        </details>`;
+      : '';
     const reorderButtons = reordering ? `<div class="reorder-controls">
       <button type="button" class="btn reorder-btn" data-move-up="${id}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
       <button type="button" class="btn reorder-btn" data-move-down="${id}" ${index === records.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
@@ -796,7 +793,7 @@ function refreshRecordsView() {
 }
 
 screen.addEventListener('click', async event => {
-  const button = event.target.closest('[data-delete], [data-proof], [data-transition], [data-reorder], [data-move-up], [data-move-down], [data-done-reorder]');
+  const button = event.target.closest('[data-proof], [data-transition], [data-move-up], [data-move-down], [data-done-reorder]');
   if (!button) return;
   if (button.dataset.doneReorder !== undefined) {
     reordering = false;
@@ -804,18 +801,8 @@ screen.addEventListener('click', async event => {
     announce('顺序已调整');
     return;
   }
-  const record = records.find(item => item.id === (button.dataset.delete || button.dataset.proof || button.dataset.transition || button.dataset.reorder || button.dataset.moveUp || button.dataset.moveDown));
+  const record = records.find(item => item.id === (button.dataset.proof || button.dataset.transition || button.dataset.moveUp || button.dataset.moveDown));
   if (!record) return;
-  if (button.dataset.reorder !== undefined) {
-    const options = button.closest('.record-options');
-    if (options) {
-      options.querySelector('summary').focus({preventScroll: true});
-      options.open = false;
-    }
-    reordering = true;
-    render();
-    return;
-  }
   if (button.dataset.moveUp !== undefined || button.dataset.moveDown !== undefined) {
     const up = button.dataset.moveUp !== undefined;
     await updateRecords(items => {
@@ -826,20 +813,6 @@ screen.addEventListener('click', async event => {
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
-    return;
-  }
-  if (button.dataset.delete) {
-    const options = button.closest('.record-options');
-    options.querySelector('summary').focus({preventScroll: true});
-    options.open = false;
-    openDialog('删除请假记录', `<p class="helper">确定删除「${escapeHtml(record.reason)}」及其附件和签字？删除后无法恢复。</p>`,
-      '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn danger confirm-danger">确认删除</button>', async () => {
-        const saved = await updateRecords(items => {
-          const remaining = items.filter(item => item.id !== record.id);
-          return remaining.length === items.length ? items : remaining;
-        });
-        announceChange('请假记录已删除', saved);
-      });
     return;
   }
   if (button.dataset.proof) {
@@ -935,20 +908,76 @@ screen.addEventListener('pointerdown', event => {
   handle.addEventListener('pointercancel', onDragEnd);
 });
 
-function closeRecordOptionsOutside(event) {
-  for (const options of screen.querySelectorAll('.record-options[open]')) {
-    if (!options.contains(event.target)) options.open = false;
+/* 顶栏右上角 ⋯ 菜单：1 条记录直接出该条操作；多条先选假条再出操作 */
+const topOptions = document.querySelector('#top-options');
+const topOptionList = document.querySelector('#top-option-list');
+function topOptionActions(record) {
+  const id = escapeHtml(record.id);
+  return `<a class="btn" href="#edit/${id}">编辑</a>${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button>`;
+}
+function renderTopOptions(selectedId = null) {
+  if (!topOptionList) return;
+  if (!records.length) {
+    topOptionList.innerHTML = '<p class="top-option-title">暂无请假记录</p>';
+    return;
   }
+  if (records.length === 1 || selectedId) {
+    const record = records.find(item => item.id === selectedId) || records[0];
+    topOptionList.innerHTML = `${records.length > 1 ? '<button type="button" class="btn top-option-back" data-top-pick>‹ 选择假条</button>' : ''}${topOptionActions(record)}`;
+    return;
+  }
+  topOptionList.innerHTML = `<p class="top-option-title">选择假条</p>${records.map(record => `<button type="button" class="btn" data-top-select="${escapeHtml(record.id)}">${escapeHtml(record.reason)} · ${escapeHtml(record.start.replace('T', ' ').slice(0, 10))}</button>`).join('')}`;
+}
+function confirmDeleteRecord(record) {
+  openDialog('删除请假记录', `<p class="helper">确定删除「${escapeHtml(record.reason)}」及其附件和签字？删除后无法恢复。</p>`,
+    '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn danger confirm-danger">确认删除</button>', async () => {
+      const saved = await updateRecords(items => {
+        const remaining = items.filter(item => item.id !== record.id);
+        return remaining.length === items.length ? items : remaining;
+      });
+      renderTopOptions();
+      announceChange('请假记录已删除', saved);
+    });
+}
+if (topOptions && topOptionList) {
+  topOptions.addEventListener('toggle', () => { if (topOptions.open) renderTopOptions(); });
+  topOptionList.addEventListener('click', event => {
+    const pick = event.target.closest('[data-top-select]');
+    if (pick) { renderTopOptions(pick.dataset.topSelect); return; }
+    if (event.target.closest('[data-top-pick]')) { renderTopOptions(); return; }
+    if (event.target.closest('a[href^="#edit/"]')) { topOptions.open = false; }
+  });
+}
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-delete], [data-reorder]');
+  if (!button) return;
+  const record = records.find(item => item.id === (button.dataset.delete || button.dataset.reorder));
+  if (!record) return;
+  const top = document.querySelector('#top-options');
+  if (top) top.open = false;
+  if (button.dataset.reorder !== undefined) {
+    reordering = true;
+    render();
+    return;
+  }
+  confirmDeleteRecord(record);
+});
+
+function closeTopOptionsOutside(event) {
+  const top = document.querySelector('#top-options');
+  if (top && top.open && !top.contains(event.target)) top.open = false;
 }
 
-document.addEventListener('click', closeRecordOptionsOutside);
-document.addEventListener('focusin', closeRecordOptionsOutside);
-screen.addEventListener('keydown', event => {
-  const options = event.target.closest('.record-options[open]');
-  if (event.key !== 'Escape' || !options) return;
-  event.preventDefault();
-  options.open = false;
-  options.querySelector('summary').focus({preventScroll: true});
+document.addEventListener('click', closeTopOptionsOutside);
+document.addEventListener('focusin', closeTopOptionsOutside);
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const top = document.querySelector('#top-options');
+  if (top && top.open) {
+    event.preventDefault();
+    top.open = false;
+    top.querySelector('summary').focus({preventScroll: true});
+  }
 });
 
 window.addEventListener('hashchange', () => {
@@ -1014,6 +1043,7 @@ void updateRecords().then(() => {
   countVisit();
   callCounter('/visit');
   render();
+  renderTopOptions();
   // 打开界面先弹使用说明，点完 OK 或「不再提示」之后再弹 Star / Follow，两个都关掉就到主界面；
   // Star 点了「不再显示」后以后不再弹
   let helpDismissed = false;
