@@ -73,7 +73,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 #mobile-back span { width: 10px; height: 10px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
 #mobile-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; }
 #mobile-close span { font-size: 26px; line-height: 1; font-weight: 400; }
-#screen { max-width: 480px; margin: auto; padding: 12px 15px 26px; }
+#screen { max-width: 480px; margin: auto; padding: 12px 15px 26px; min-height: calc(100dvh + 60px); }
 #screen:has(.footer-actions) { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 .narrow { max-width: 760px; margin-inline: auto; }
 .panel, .record { border: 1px solid var(--line); background: var(--card); border-radius: 18px; padding: 24px; min-width: 0; }
