@@ -598,6 +598,7 @@ function bonusPopupHtml(latest) {
     <p>第 <strong data-visitor-rank>${visitorRank === null ? '…' : num(visitorRank)}</strong> 个访问此网站</p>
     <p>的 CJUer</p>
     <p class="bonus-visits">这是你第 ${myVisits === null ? visitCount : myVisits} 次访问本站</p>
+    <p><button type="button" class="bonus-link" data-realtime>📊 实时数据</button></p>
   </div>`;
 }
 
@@ -619,6 +620,28 @@ async function openBonusPopup() {
   if (visitsEl && latest && typeof latest.myVisits === 'number' && latest.myVisits > 0) {
     visitsEl.textContent = `这是你第 ${latest.myVisits} 次访问本站`;
   }
+}
+
+// 实时数据：显示全站总数（两站共用同一份数），点开即拉最新
+async function openRealtimePopup() {
+  const num = n => (typeof n === 'number' && n > 0 ? String(n) : '…');
+  const cached = counterTotals;
+  openDialog('实时数据', `<div class="bonus-result">
+    <p>已有 <strong data-rt-visitors>${cached ? num(cached.visitors) : '…'}</strong> 人访问本站</p>
+    <p>已有 <strong data-rt-bonus>${cached ? num(cached.bonus) : '…'}</strong> 人点击 Bonus</p>
+  </div>`, '<button value="ok" class="btn primary" autofocus>知道了</button>');
+  try {
+    const res = await fetch(`${COUNTER_BASE}/stats`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!modal.open) return;
+    const setNum = (attr, value) => {
+      const el = modal.querySelector(`[data-${attr}]`);
+      if (el) el.textContent = (typeof value === 'number' && value > 0) ? String(value) : '—';
+    };
+    setNum('rt-visitors', data.visitors);
+    setNum('rt-bonus', data.bonus);
+  } catch {}
 }
 
 // 彩带飞溅：手写小彩带，不走 CDN，离线也能飞
@@ -1193,6 +1216,13 @@ modal.addEventListener('click', event => {
   if (!event.target.closest('[data-bonus]')) return;
   modal.close();
   openBonusPopup();
+});
+
+// 实时数据按钮在 Bonus 框里：先关 Bonus 框再开实时数据框
+modal.addEventListener('click', event => {
+  if (!event.target.closest('[data-realtime]')) return;
+  modal.close();
+  openRealtimePopup();
 });
 void updateRecords().then(() => {
   adoptVidFromUrl();

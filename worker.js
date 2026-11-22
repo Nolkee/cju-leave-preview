@@ -26,6 +26,11 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
     if (url.pathname === '/') return json({ ok: true, service: 'cju-leave-counter' });
     if (!env.COUNTER) return json({ error: 'KV not bound' }, 500);
+    if (url.pathname === '/stats') {
+      const visitors = parseInt((await env.COUNTER.get('total:visitors')) || '0', 10) || 0;
+      const bonus = parseInt((await env.COUNTER.get('total:bonus')) || '0', 10) || 0;
+      return json({ visitors, bonus });
+    }
     const kind = url.pathname === '/visit' ? 'visitors' : url.pathname === '/bonus' ? 'bonus' : null;
     if (!kind) return json({ error: 'not found' }, 404);
     const vid = url.searchParams.get('vid') || '';
