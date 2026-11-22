@@ -48,7 +48,7 @@ function countVisit() {
 // 全站计数（Cloudflare Worker + KV）：浏览器 ID 去重，全站共用同一套数
 const COUNTER_BASE = 'https://cju-leave-preview.ans44454456.workers.dev';
 const clientIdKey = 'leave-client-id-v1';
-let counterTotals = null; // 最近一次 Worker 返回的 { visitors, bonus, myVisitorRank, myBonusRank }
+let counterTotals = null; // 最近一次 Worker 返回的 { visitors, bonus, myVisitorRank, myBonusRank, myVisits }
 
 function getClientId() {
   try {
@@ -591,12 +591,13 @@ function bonusPopupHtml(latest) {
   const num = n => (typeof n === 'number' && n > 0 ? String(n) : '—');
   const bonusRank = latest && typeof latest.myBonusRank === 'number' ? latest.myBonusRank : null;
   const visitorRank = latest && typeof latest.myVisitorRank === 'number' ? latest.myVisitorRank : null;
+  const myVisits = latest && typeof latest.myVisits === 'number' && latest.myVisits > 0 ? latest.myVisits : null;
   return `<div class="bonus-result">
     <p>你是</p>
     <p>第 <strong data-bonus-rank>${bonusRank === null ? '…' : num(bonusRank)}</strong> 个点击 Bonus</p>
     <p>第 <strong data-visitor-rank>${visitorRank === null ? '…' : num(visitorRank)}</strong> 个访问此网站</p>
     <p>的 CJUer</p>
-    <p class="bonus-visits">这是你第 ${visitCount} 次访问本站</p>
+    <p class="bonus-visits">这是你第 ${myVisits === null ? visitCount : myVisits} 次访问本站</p>
   </div>`;
 }
 
@@ -614,6 +615,10 @@ async function openBonusPopup() {
   };
   setRank('bonus-rank', latest && latest.myBonusRank);
   setRank('visitor-rank', latest && latest.myVisitorRank);
+  const visitsEl = modal.querySelector('.bonus-visits');
+  if (visitsEl && latest && typeof latest.myVisits === 'number' && latest.myVisits > 0) {
+    visitsEl.textContent = `这是你第 ${latest.myVisits} 次访问本站`;
+  }
 }
 
 // 彩带飞溅：手写小彩带，不走 CDN，离线也能飞

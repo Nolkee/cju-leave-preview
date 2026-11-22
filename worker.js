@@ -32,6 +32,13 @@ export default {
     if (!/^[A-Za-z0-9-]{8,64}$/.test(vid)) return json({ error: 'bad vid' }, 400);
     // 本次调用的计数：第一次来才 +1，seen 的值就是这个浏览器当时的排名
     const isNew = await countOnce(env.COUNTER, kind, vid);
+    // 每次访问都累计该浏览器的访问次数（两站共用一个 vid 就共用这个数）
+    let myVisits = 0;
+    if (kind === 'visitors') {
+      myVisits = await countVisits(env.COUNTER, vid);
+    } else {
+      myVisits = parseInt((await env.COUNTER.get(`visits:${vid}`)) || '0', 10) || 0;
+    }
     const visitors = parseInt((await env.COUNTER.get('total:visitors')) || '0', 10) || 0;
     const bonus = parseInt((await env.COUNTER.get('total:bonus')) || '0', 10) || 0;
     return json({
@@ -40,6 +47,7 @@ export default {
       isNew,
       myVisitorRank: await rankOf(env.COUNTER, 'visitors', vid),
       myBonusRank: await rankOf(env.COUNTER, 'bonus', vid),
+      myVisits,
     });
   },
 };
@@ -59,4 +67,12 @@ async function countOnce(store, kind, vid) {
 async function rankOf(store, kind, vid) {
   const n = parseInt((await store.get(`seen:${kind}:${vid}`)) || '', 10);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// 该浏览器累计访问次数（每次 /visit +1，两站共用一个 vid 就共用这个数）
+async function countVisits(store, vid) {
+  const key = `visits:${vid}`;
+  const n = (parseInt((await store.get(key)) || '0', 10) || 0) + 1;
+  await store.put(key, String(n));
+  return n;
 }
