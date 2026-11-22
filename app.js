@@ -16,6 +16,7 @@ const seed = {
 };
 const statusText = {pending: '待审批', approved: '未销假', closed: '已销假'};
 let records = [seed];
+let reordering = false;
 let toastTimer;
 let expirationTimer;
 let storageSnapshot;
@@ -212,32 +213,43 @@ function badge(status) {
 
 function list() {
   const total = records.reduce((sum, record) => sum + minutes(record.start, record.end), 0);
-  const cards = records.map(record => {
+  const cards = records.map((record, index) => {
     const id = escapeHtml(record.id);
-    return `<article class="record">
-      <div class="record-heading">
-        <h2>${escapeHtml(record.reason)}</h2>
-        <details class="record-options">
+    const headingControls = reordering
+      ? `<span class="drag-handle" data-drag="${id}" title="按住拖动调整顺序" aria-label="拖动调整顺序">⋮⋮</span>`
+      : `<details class="record-options">
           <summary aria-label="更多操作"><span aria-hidden="true">⋯</span></summary>
-          <div class="record-option-list"><button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
-        </details>
+          <div class="record-option-list">${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
+        </details>`;
+    const reorderButtons = reordering ? `<div class="reorder-controls">
+      <button type="button" class="btn reorder-btn" data-move-up="${id}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
+      <button type="button" class="btn reorder-btn" data-move-down="${id}" ${index === records.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
+    </div>` : '';
+    return `<article class="record${reordering ? ' reordering' : ''}" data-record-id="${id}">
+      <div class="record-heading">
+        ${headingControls}
+        <h2>${escapeHtml(record.reason)}</h2>
+        ${reorderButtons}
       </div>
       <div class="record-body">${badge(record.status)}${metadata([
         ['请假类型', escapeHtml(record.type)],
         ['请假时间', dateRange(record)],
         ['外出地点', record.off === '是' ? escapeHtml(record.destination) : '未离校'],
       ])}</div>
-      <div class="actions">
+      ${reordering ? '' : `<div class="actions">
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
         ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
-      </div>
+      </div>`}
     </article>`;
   }).join('');
   return `<div class="narrow leave-list">
     ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
+    ${reordering ? '<p class="reorder-hint">按住 ⋮⋮ 拖动卡片，或点 ↑ ↓ 移动，完成后点「完成」。</p>' : ''}
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
-    <div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>
+    ${reordering
+      ? '<div class="actions footer-actions"><button type="button" class="btn primary" data-done-reorder>完成</button></div>'
+      : '<div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>'}
   </div>`;
 }
 
@@ -722,6 +734,7 @@ function render(restoreFocus = false) {
   const [requestedPage, id] = location.hash.slice(1).split('/');
   const record = records.find(item => item.id === id);
   const page = requestedPage === 'apply' ? 'apply' : requestedPage === 'detail' && record ? 'detail' : 'records';
+  if (page !== 'records') reordering = false;
   screen.innerHTML = page === 'apply' ? form() : page === 'detail' ? details(record) : list();
   screen.dataset.page = page;
   renderedRecords = records;
@@ -747,11 +760,39 @@ function refreshRecordsView() {
   renderedRecords = records;
 }
 
-screen.addEventListener('click', event => {
-  const button = event.target.closest('[data-delete], [data-proof], [data-transition]');
+screen.addEventListener('click', async event => {
+  const button = event.target.closest('[data-delete], [data-proof], [data-transition], [data-reorder], [data-move-up], [data-move-down], [data-done-reorder]');
   if (!button) return;
-  const record = records.find(item => item.id === (button.dataset.delete || button.dataset.proof || button.dataset.transition));
+  if (button.dataset.doneReorder !== undefined) {
+    reordering = false;
+    render();
+    announce('顺序已调整');
+    return;
+  }
+  const record = records.find(item => item.id === (button.dataset.delete || button.dataset.proof || button.dataset.transition || button.dataset.reorder || button.dataset.moveUp || button.dataset.moveDown));
   if (!record) return;
+  if (button.dataset.reorder !== undefined) {
+    const options = button.closest('.record-options');
+    if (options) {
+      options.querySelector('summary').focus({preventScroll: true});
+      options.open = false;
+    }
+    reordering = true;
+    render();
+    return;
+  }
+  if (button.dataset.moveUp !== undefined || button.dataset.moveDown !== undefined) {
+    const up = button.dataset.moveUp !== undefined;
+    await updateRecords(items => {
+      const index = items.findIndex(item => item.id === record.id);
+      const target = up ? index - 1 : index + 1;
+      if (index < 0 || target < 0 || target >= items.length) return items;
+      const next = [...items];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+    return;
+  }
   if (button.dataset.delete) {
     const options = button.closest('.record-options');
     options.querySelector('summary').focus({preventScroll: true});
@@ -790,6 +831,73 @@ screen.addEventListener('click', event => {
         announceChange(message, saved);
       }
     });
+});
+
+let dragState = null;
+
+function dragTargetIndex(card) {
+  const listEl = card.parentElement;
+  const centerY = card.getBoundingClientRect().top + card.offsetHeight / 2;
+  const others = [...listEl.querySelectorAll('.record')].filter(item => item !== card);
+  let target = 0;
+  for (const other of others) {
+    const rect = other.getBoundingClientRect();
+    if (rect.top + rect.height / 2 < centerY) target++;
+  }
+  return target;
+}
+
+function onDragMove(event) {
+  if (!dragState) return;
+  const { card, listEl } = dragState;
+  const deltaY = event.clientY - dragState.startY;
+  card.style.transform = `translateY(${deltaY}px)`;
+  const target = dragTargetIndex(card);
+  if (target === dragState.index) return;
+  const rectBefore = card.getBoundingClientRect().top;
+  const others = [...listEl.querySelectorAll('.record')].filter(item => item !== card);
+  const endEl = listEl.querySelector('.end');
+  listEl.insertBefore(card, others[target] || endEl);
+  const rectAfter = card.getBoundingClientRect().top;
+  const deltaYNew = rectBefore - rectAfter + deltaY;
+  dragState.startY = event.clientY - deltaYNew;
+  card.style.transform = `translateY(${deltaYNew}px)`;
+  dragState.index = target;
+}
+
+function onDragEnd() {
+  if (!dragState) return;
+  const { card, listEl, handle } = dragState;
+  dragState = null;
+  card.classList.remove('dragging');
+  card.style.transform = '';
+  card.style.zIndex = '';
+  handle.removeEventListener('pointermove', onDragMove);
+  handle.removeEventListener('pointerup', onDragEnd);
+  handle.removeEventListener('pointercancel', onDragEnd);
+  const ids = [...listEl.querySelectorAll('.record')].map(item => item.dataset.recordId);
+  if (ids.join() === records.map(item => item.id).join()) return;
+  void updateRecords(items => {
+    const byId = new Map(items.map(item => [item.id, item]));
+    const next = ids.map(id => byId.get(id)).filter(Boolean);
+    return next.length === items.length ? next : items;
+  });
+}
+
+screen.addEventListener('pointerdown', event => {
+  const handle = event.target.closest('.drag-handle');
+  if (!handle || !reordering) return;
+  const card = handle.closest('.record');
+  if (!card) return;
+  event.preventDefault();
+  const listEl = card.parentElement;
+  dragState = { card, listEl, handle, index: [...listEl.querySelectorAll('.record')].indexOf(card), startY: event.clientY };
+  card.classList.add('dragging');
+  card.style.zIndex = '5';
+  try { handle.setPointerCapture(event.pointerId); } catch {}
+  handle.addEventListener('pointermove', onDragMove);
+  handle.addEventListener('pointerup', onDragEnd);
+  handle.addEventListener('pointercancel', onDragEnd);
 });
 
 function closeRecordOptionsOutside(event) {

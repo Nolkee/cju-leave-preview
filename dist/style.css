@@ -96,6 +96,14 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .record-options > summary:hover, .record-options[open] > summary { background: #eef1f8; }
 .record-option-list { position: absolute; z-index: 1; top: 100%; right: 0; min-width: max-content; padding: 5px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); box-shadow: 0 6px 18px #171f4120; }
 .record-option-list .btn { min-height: 44px; border-color: transparent; }
+.reorder-hint { text-align: center; color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.record.reordering .record-heading h2 { flex: 1; }
+.drag-handle { flex: none; display: grid; place-items: center; width: 36px; height: 44px; color: var(--muted); font-size: 18px; letter-spacing: 1px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.drag-handle:active { cursor: grabbing; }
+.record.dragging { position: relative; z-index: 5; background: var(--card); border-radius: 12px; box-shadow: 0 10px 24px #171f4130; opacity: .95; }
+.reorder-controls { display: flex; align-items: center; gap: 4px; flex: none; }
+.reorder-btn { min-height: 36px; min-width: 36px; padding: 4px 8px; font-size: 16px; }
+.reorder-btn:disabled { opacity: .35; cursor: default; }
 .record-body { margin-top: 14px; padding: 14px 16px 2px; border: 1px solid var(--record-border); border-radius: 12px; background: var(--record-fill); }
 .record-body .meta dt { color: var(--record-label); }
 .record-body .meta dd { color: var(--record-value); }
