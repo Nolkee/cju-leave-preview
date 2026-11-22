@@ -17,6 +17,8 @@ const seed = {
 const statusText = {pending: '待审批', approved: '未销假', closed: '已销假'};
 let records = [seed];
 let reordering = false;
+let editing = false;
+const selectedIds = new Set();
 let toastTimer;
 let expirationTimer;
 let storageSnapshot;
@@ -217,12 +219,21 @@ function list() {
     const id = escapeHtml(record.id);
     const headingControls = reordering
       ? `<span class="drag-handle" data-drag="${id}" title="按住拖动调整顺序" aria-label="拖动调整顺序">⋮⋮</span>`
-      : '';
+      : editing
+        ? `<button type="button" class="select-btn${selectedIds.has(record.id) ? ' selected' : ''}" data-select="${id}" aria-label="选择${escapeHtml(record.reason)}" aria-pressed="${selectedIds.has(record.id)}">${selectedIds.has(record.id) ? '✓' : ''}</button>`
+        : '';
     const reorderButtons = reordering ? `<div class="reorder-controls">
       <button type="button" class="btn reorder-btn" data-move-up="${id}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
       <button type="button" class="btn reorder-btn" data-move-down="${id}" ${index === records.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
     </div>` : '';
-    return `<article class="record${reordering ? ' reordering' : ''}" data-record-id="${id}">
+    const recordActions = reordering ? '' : editing ? `<div class="actions">
+        <a class="btn" href="#edit/${id}" aria-label="编辑${escapeHtml(record.reason)}">编辑</a>
+        <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
+      </div>` : `<div class="actions">
+        <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
+        ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
+      </div>`;
+    return `<article class="record${reordering ? ' reordering' : ''}${editing ? ' editing' : ''}${editing && selectedIds.has(record.id) ? ' selected' : ''}" data-record-id="${id}">
       <div class="record-heading">
         ${headingControls}
         <h2>${escapeHtml(record.reason)}</h2>
@@ -233,20 +244,22 @@ function list() {
         ['请假时间', dateRange(record)],
         ['外出地点', record.off === '是' ? escapeHtml(record.destination) : '未离校'],
       ])}</div>
-      ${reordering ? '' : `<div class="actions">
-        <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
-        ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
-      </div>`}
+      ${recordActions}
     </article>`;
   }).join('');
+  const footer = reordering
+    ? '<div class="actions footer-actions"><button type="button" class="btn primary" data-done-reorder>完成</button></div>'
+    : editing
+      ? selectedIds.size
+        ? `<div class="actions footer-actions"><button type="button" class="btn danger edit-footer-danger" data-delete-selected>删除所选（${selectedIds.size}）</button></div>`
+        : '<div class="actions footer-actions"><button type="button" class="btn primary" data-done-edit>完成</button></div>'
+      : '<div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>';
   return `<div class="narrow leave-list">
     ${heading('请假申请', false)}
     <div class="stats"><span>在校期间请假 <strong>${records.length} 次</strong></span><span>总时长 <strong>${duration(total, false)}</strong></span></div>
     ${reordering ? '<p class="reorder-hint">按住 ⋮⋮ 拖动卡片，或点 ↑ ↓ 移动，完成后点「完成」。</p>' : ''}
     ${cards}<p class="end">${cards ? '没有更多了' : '暂无请假记录'}</p>
-    ${reordering
-      ? '<div class="actions footer-actions"><button type="button" class="btn primary" data-done-reorder>完成</button></div>'
-      : '<div class="actions footer-actions"><a class="btn primary" href="#apply">申请</a></div>'}
+    ${footer}
   </div>`;
 }
 
@@ -516,6 +529,7 @@ function openDialog(title, content, buttons, onConfirm = () => {}) {
 }
 
 const titleHintKey = 'leave-title-hint-count-v1';
+const topHintKey = 'leave-top-hint-count-v1';
 const TITLE_HINT_MAX = 3;
 const usageHelpHtml = `<p class="usage-notice">此项目仅用于学习交流，请勿用于虚假请假、伪造请假证明或冒充正式校务系统。</p>
   <dl class="usage-help">
@@ -683,15 +697,99 @@ function showTitleHint() {
   // 提醒动画只在最初打开网站的前 3 次显示
   let count = 0;
   try { count = Number(localStorage.getItem(titleHintKey) || '0') || 0; } catch {}
-  if (count >= TITLE_HINT_MAX) return;
+  if (count >= TITLE_HINT_MAX) { showTopHint(); return; }
   try { localStorage.setItem(titleHintKey, String(count + 1)); } catch {}
   const hint = document.querySelector('#title-hint');
   const title = document.querySelector('#mobile-title');
   if (!hint || !title) return;
   hint.hidden = false;
   title.classList.add('title-pulse');
-  hint._timer = setTimeout(hideTitleHint, 6000);
+  hint._timer = setTimeout(() => { hideTitleHint(); showTopHint(); }, 6000);
 }
+
+function hideTopHint() {
+  const hint = document.querySelector('#top-hint');
+  const summary = document.querySelector('#top-options > summary');
+  if (hint) { hint.hidden = true; if (hint._timer) clearTimeout(hint._timer); }
+  if (summary) summary.classList.remove('top-pulse');
+}
+
+function showTopHint() {
+  // ⋯ 提示只在最初打开网站的前 3 次显示；标题提示还在显示时不抢位置，等它 6 秒消失后再出
+  let count = 0;
+  try { count = Number(localStorage.getItem(topHintKey) || '0') || 0; } catch {}
+  if (count >= TITLE_HINT_MAX) return;
+  try { localStorage.setItem(topHintKey, String(count + 1)); } catch {}
+  const hint = document.querySelector('#top-hint');
+  const summary = document.querySelector('#top-options > summary');
+  if (!hint || !summary) return;
+  hint.hidden = false;
+  summary.classList.add('top-pulse');
+  hint._timer = setTimeout(hideTopHint, 6000);
+}
+
+/* 编辑模式新手引导：第一次进编辑模式时，分步带用户 编辑一条 → 返回 → 点圆圈 → 删除默认假条 */
+const editGuideKey = 'leave-edit-guide-done-v2';
+const guideSteps = [
+  { target: '.record .actions a[href^="#edit/"]', text: '点「编辑」，随便改一条信息' },
+  { target: '#mobile-back', text: '随便改一项，然后点左上角返回' },
+  { target: '.record .select-btn', text: '点圆圈，选中这条假条' },
+  { target: '[data-delete-selected]', text: '点「删除所选」，删掉这条默认假条' },
+];
+let guideStep = -1; // -1 = 未启动
+function guideDone() {
+  try { return localStorage.getItem(editGuideKey) === '1'; } catch { return true; }
+}
+function endGuide() {
+  guideStep = -1;
+  const guide = document.querySelector('#guide');
+  if (guide) guide.hidden = true;
+  try { localStorage.setItem(editGuideKey, '1'); } catch {}
+}
+function positionGuide() {
+  if (guideStep < 0 || guideStep >= guideSteps.length) return;
+  const step = guideSteps[guideStep];
+  const target = document.querySelector(step.target);
+  const guide = document.querySelector('#guide');
+  const ring = document.querySelector('#guide-ring');
+  const tip = document.querySelector('#guide-tip');
+  const text = document.querySelector('#guide-text');
+  if (!target || !guide || !ring || !tip || !text) { endGuide(); return; }
+  const rect = target.getBoundingClientRect();
+  if (rect.bottom < 0 || rect.top > window.innerHeight) {
+    target.scrollIntoView({ block: 'center' });
+    requestAnimationFrame(positionGuide);
+    return;
+  }
+  guide.hidden = false;
+  text.textContent = step.text;
+  ring.style.left = (rect.left - 6) + 'px';
+  ring.style.top = (rect.top - 6) + 'px';
+  ring.style.width = (rect.width + 12) + 'px';
+  ring.style.height = (rect.height + 12) + 'px';
+  const tipHeight = tip.offsetHeight || 90;
+  const below = rect.bottom + 12 + tipHeight <= window.innerHeight;
+  tip.style.left = Math.max(12, Math.min(window.innerWidth - tip.offsetWidth - 12, rect.left)) + 'px';
+  tip.style.top = (below ? rect.bottom + 12 : Math.max(70, rect.top - 12 - tipHeight)) + 'px';
+}
+function startEditGuide() {
+  if (guideDone() || !records.length || !editing) return;
+  guideStep = 0;
+  positionGuide();
+}
+function advanceGuide() {
+  if (guideStep < 0) return;
+  guideStep++;
+  if (guideStep >= guideSteps.length) { endGuide(); return; }
+  requestAnimationFrame(() => setTimeout(positionGuide, 60));
+}
+document.addEventListener('click', event => {
+  if (guideStep < 0 || guideStep >= guideSteps.length) return;
+  if (event.target.closest(guideSteps[guideStep].target)) advanceGuide();
+});
+document.querySelector('#guide-skip').addEventListener('click', endGuide);
+window.addEventListener('resize', positionGuide);
+window.addEventListener('scroll', positionGuide, true);
 
 function confirmSave(data, files, editing) {
   let signed = false;
@@ -766,7 +864,8 @@ function render(restoreFocus = false) {
   const [requestedPage, id] = location.hash.slice(1).split('/');
   const record = records.find(item => item.id === id);
   const page = requestedPage === 'apply' ? 'apply' : requestedPage === 'detail' && record ? 'detail' : requestedPage === 'edit' && record ? 'edit' : 'records';
-  if (page !== 'records') reordering = false;
+  // 进编辑表单不退出编辑模式，返回列表时还留在编辑模式；去详情/申请页才退出
+  if (page !== 'records' && page !== 'edit') { reordering = false; editing = false; selectedIds.clear(); }
   screen.innerHTML = page === 'apply' ? form() : page === 'detail' ? details(record) : page === 'edit' ? form(record) : list();
   screen.dataset.page = page;
   renderedRecords = records;
@@ -780,6 +879,7 @@ function render(restoreFocus = false) {
     window.scrollTo(0, 0);
     title.focus({preventScroll: true});
   }
+  positionGuide();
 }
 
 function refreshRecordsView() {
@@ -793,12 +893,38 @@ function refreshRecordsView() {
 }
 
 screen.addEventListener('click', async event => {
-  const button = event.target.closest('[data-proof], [data-transition], [data-move-up], [data-move-down], [data-done-reorder]');
+  const button = event.target.closest('[data-proof], [data-transition], [data-move-up], [data-move-down], [data-done-reorder], [data-select], [data-delete-selected], [data-done-edit]');
   if (!button) return;
   if (button.dataset.doneReorder !== undefined) {
     reordering = false;
     render();
     announce('顺序已调整');
+    return;
+  }
+  if (button.dataset.doneEdit !== undefined) {
+    editing = false;
+    selectedIds.clear();
+    render();
+    return;
+  }
+  if (button.dataset.select !== undefined) {
+    const id = button.dataset.select;
+    if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+    render();
+    return;
+  }
+  if (button.dataset.deleteSelected !== undefined) {
+    if (!selectedIds.size) return;
+    const count = selectedIds.size;
+    const ids = [...selectedIds];
+    openDialog('删除请假记录', `<p class="helper">确定删除选中的 ${count} 条请假记录及其附件和签字？删除后无法恢复。</p>`,
+      '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn danger confirm-danger">确认删除</button>', async () => {
+        const saved = await updateRecords(items => items.filter(item => !ids.includes(item.id)));
+        editing = false;
+        selectedIds.clear();
+        render();
+        announceChange(`已删除 ${count} 条请假记录`, saved);
+      });
     return;
   }
   const record = records.find(item => item.id === (button.dataset.proof || button.dataset.transition || button.dataset.moveUp || button.dataset.moveDown));
@@ -908,60 +1034,30 @@ screen.addEventListener('pointerdown', event => {
   handle.addEventListener('pointercancel', onDragEnd);
 });
 
-/* 顶栏右上角 ⋯ 菜单：1 条记录直接出该条操作；多条先选假条再出操作 */
+/* 顶栏右上角 ⋯ 菜单：只有「编辑」，点进编辑模式（列表多选删除 / 单条编辑） */
 const topOptions = document.querySelector('#top-options');
 const topOptionList = document.querySelector('#top-option-list');
-function topOptionActions(record) {
-  const id = escapeHtml(record.id);
-  return `<a class="btn" href="#edit/${id}">编辑</a>${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button>`;
-}
-function renderTopOptions(selectedId = null) {
+function renderTopOptions() {
   if (!topOptionList) return;
   if (!records.length) {
     topOptionList.innerHTML = '<p class="top-option-title">暂无请假记录</p>';
     return;
   }
-  if (records.length === 1 || selectedId) {
-    const record = records.find(item => item.id === selectedId) || records[0];
-    topOptionList.innerHTML = `${records.length > 1 ? '<button type="button" class="btn top-option-back" data-top-pick>‹ 选择假条</button>' : ''}${topOptionActions(record)}`;
-    return;
-  }
-  topOptionList.innerHTML = `<p class="top-option-title">选择假条</p>${records.map(record => `<button type="button" class="btn" data-top-select="${escapeHtml(record.id)}">${escapeHtml(record.reason)} · ${escapeHtml(record.start.replace('T', ' ').slice(0, 10))}</button>`).join('')}`;
-}
-function confirmDeleteRecord(record) {
-  openDialog('删除请假记录', `<p class="helper">确定删除「${escapeHtml(record.reason)}」及其附件和签字？删除后无法恢复。</p>`,
-    '<button value="cancel" class="btn" autofocus>取消</button><button value="confirm" class="btn danger confirm-danger">确认删除</button>', async () => {
-      const saved = await updateRecords(items => {
-        const remaining = items.filter(item => item.id !== record.id);
-        return remaining.length === items.length ? items : remaining;
-      });
-      renderTopOptions();
-      announceChange('请假记录已删除', saved);
-    });
+  topOptionList.innerHTML = '<button type="button" class="btn" data-edit-mode>编辑</button>';
 }
 if (topOptions && topOptionList) {
-  topOptions.addEventListener('toggle', () => { if (topOptions.open) renderTopOptions(); });
+  topOptions.addEventListener('toggle', () => { if (topOptions.open) { hideTopHint(); renderTopOptions(); } });
   topOptionList.addEventListener('click', event => {
-    const pick = event.target.closest('[data-top-select]');
-    if (pick) { renderTopOptions(pick.dataset.topSelect); return; }
-    if (event.target.closest('[data-top-pick]')) { renderTopOptions(); return; }
-    if (event.target.closest('a[href^="#edit/"]')) { topOptions.open = false; }
+    if (event.target.closest('[data-edit-mode]')) {
+      topOptions.open = false;
+      hideTopHint();
+      editing = true;
+      selectedIds.clear();
+      render();
+      startEditGuide();
+    }
   });
 }
-document.addEventListener('click', event => {
-  const button = event.target.closest('[data-delete], [data-reorder]');
-  if (!button) return;
-  const record = records.find(item => item.id === (button.dataset.delete || button.dataset.reorder));
-  if (!record) return;
-  const top = document.querySelector('#top-options');
-  if (top) top.open = false;
-  if (button.dataset.reorder !== undefined) {
-    reordering = true;
-    render();
-    return;
-  }
-  confirmDeleteRecord(record);
-});
 
 function closeTopOptionsOutside(event) {
   const top = document.querySelector('#top-options');
