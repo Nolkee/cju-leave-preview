@@ -139,8 +139,8 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .select-btn.selected { border-color: var(--accent); background: var(--accent); }
 .record.editing .record-heading h2 { flex: 1; }
 .record.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.btn.edit-footer-danger { flex: 1; min-height: 38px; font-size: 16px; font-weight: 600; border-radius: 999px; justify-content: center; color: #fff; background: #a93144; border-color: #a93144; }
-.btn.edit-footer-danger:hover { background: #912537; }
+.btn.danger.edit-footer-danger { flex: 1; min-height: 38px; font-size: 16px; font-weight: 600; border-radius: 999px; justify-content: center; color: #fff; background: #a93144; border-color: #a93144; }
+.btn.danger.edit-footer-danger:hover { background: #912537; }
 .record-body { position: relative; margin-top: 14px; padding: 14px 16px 2px; border: 1px solid var(--record-border); border-radius: 12px; background: var(--record-fill); }
 .record-body .meta dt { color: var(--record-label); }
 .record-body .meta dd { color: var(--record-value); }
