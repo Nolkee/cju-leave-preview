@@ -627,8 +627,8 @@ async function openRealtimePopup() {
   const num = n => (typeof n === 'number' && n > 0 ? String(n) : '…');
   const cached = counterTotals;
   openDialog('实时数据', `<div class="bonus-result">
-    <p>已有 <strong data-rt-visitors>${cached ? num(cached.visitors) : '…'}</strong> 人访问本站</p>
-    <p>已有 <strong data-rt-bonus>${cached ? num(cached.bonus) : '…'}</strong> 人点击 Bonus</p>
+    <p>已有 <strong data-rt-visitors>${cached ? num(cached.visitors) : '…'}</strong> 人访问过此站</p>
+    <p>已有 <strong data-rt-bonus>${cached ? num(cached.bonus) : '…'}</strong> 人点击过 Bonus</p>
   </div>`, '<button value="ok" class="btn primary" autofocus>知道了</button>');
   try {
     const res = await fetch(`${COUNTER_BASE}/stats`);
