@@ -24,11 +24,13 @@ python3 -m http.server 4173
 
 ## 双线路（Vercel 优先，Cloudflare Pages 兜底）
 
-`*.vercel.app` 在国内会被 DNS 污染，不翻墙打不开，所以加了智能切换：
+**以下内容已作废，现在全面由Cloudflare托管。**
 
-- 主站：`https://cju-leave-demo.vercel.app/`（Vercel）
-- 兜底站：`https://cju-leave-preview.pages.dev/`（Cloudflare Pages） 静态站（`*.pages.dev`，部署 `dist/`）
-- 入口请分享 Pages 地址。Pages 上的 `index.html` 会在打开时用 3 秒试探 Vercel 通不通，通就跳到 Vercel（保留 `#` 路由），不通或超时就留在 Pages 正常显示。
-- 上次结果记在浏览器 `localStorage`（`cju-leave-route-v1`，12 小时有效），上次走 Pages 就直接留，不再等 3 秒。
-- 手动强制：`?route=vercel` 直接去 Vercel，`?route=pages`（或 `?route=netlify`、`?route=pxxl`）强制留当前站。本地预览（localhost）不做探测。
-- 备注：原计划用 Pxxl 做兜底，2026-11-20 部署时 Pxxl 账号被标记 abuse review、新部署被禁，改用 Netlify；当晚 20 次部署烧完 Netlify 免费额度（300），改用 Cloudflare Pages。Pxxl 解封后可再切回，检测脚本本身是通用的，在 `*.pxxlspace.cv` 上也能用。
+~~`*.vercel.app` 在国内会被 DNS 污染，不翻墙打不开，所以加了智能切换：~~
+
+- ~~主站：`https://cju-leave-demo.vercel.app/`（Vercel）~~
+- ~~兜底站：`https://cju-leave-preview.pages.dev/`（Cloudflare Pages） 静态站（`*.pages.dev`，部署 `dist/`）~~
+- ~~入口请分享 Pages 地址。Pages 上的 `index.html` 会在打开时用 3 秒试探 Vercel 通不通，通就跳到 Vercel（保留 `#` 路由），不通或超时就留在 Pages 正常显示。~~
+- ~~上次结果记在浏览器 `localStorage`（`cju-leave-route-v1`，12 小时有效），上次走 Pages 就直接留，不再等 3 秒。~~
+- ~~手动强制：`?route=vercel` 直接去 Vercel，`?route=pages`（或 `?route=netlify`、`?route=pxxl`）强制留当前站。本地预览（localhost）不做探测。~~
+- ~~备注：原计划用 Pxxl 做兜底，2026-11-20 部署时 Pxxl 账号被标记 abuse review、新部署被禁，改用 Netlify；当晚 20 次部署烧完 Netlify 免费额度（300），改用 Cloudflare Pages。Pxxl 解封后可再切回，检测脚本本身是通用的，在 `*.pxxlspace.cv` 上也能用。~~
