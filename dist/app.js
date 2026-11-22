@@ -6,7 +6,17 @@ const toast = document.querySelector('#toast');
 const storageKey = 'leave-practice-records-v1';
 const usageHelpKey = 'leave-usage-help-dismissed-v1';
 const starPromptKey = 'leave-star-prompt-dismissed-v1';
-const currentTerm = '2026–2027学年第1学期';
+// 学期按请假日期自动判断：9.1–次年 3.1 为第 1 学期，3.1–8.31 为第 2 学期
+function termForDate(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  if (m >= 9) return `${y}–${y + 1}学年第1学期`;
+  if (m >= 3) return `${y - 1}–${y}学年第2学期`;
+  return `${y - 1}–${y}学年第1学期`;
+}
+const currentTerm = termForDate(new Date());
 const seed = {
   id: 'example', term: '2025–2026学年第1学期', phone: '00000000000',
   type: '校内请假', category: '病假', start: '2025-12-15T03:23', end: '2025-12-15T12:00',
@@ -168,8 +178,8 @@ function announceChange(message, saved) {
   announce(saved ? message : `${message}。浏览器存储不可用，刷新后将丢失本次操作。`);
 }
 
-function termCount(items = records) {
-  return items.filter(record => record.term === currentTerm).length;
+function termCount(items = records, term = currentTerm) {
+  return items.filter(record => record.term === term).length;
 }
 
 function minutes(start, end) {
@@ -289,11 +299,12 @@ function form(editing) {
         <button type="button" class="btn quick-btn" data-template="personal">一键事假</button>
       </div>`}
       <section class="panel application-info"><h2>请假信息</h2>
-        <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong id="term-count">${termCount()}</strong></span></div>
+        <div class="stats"><span>学期 <strong id="term-display">${currentTerm}</strong></span><span>本学期请假次数 <strong id="term-count">${termCount()}</strong></span></div>
         <div class="form-grid">
           ${field('phone', '个人手机号', '<input id="phone" name="phone" type="tel" inputmode="numeric" pattern="[0-9]{11}" title="请输入 11 位数字" maxlength="11" value="13389734623" required><small data-count="phone"></small>', 'full')}
           ${select('type', '请假类型', ['校内请假', '校外请假'])}
           ${select('category', '事由类型', ['病假', '事假', '其他'])}
+          ${field('term', '学期', '<input id="term" name="term" maxlength="30" placeholder="如 2026–2027学年第1学期" required>', 'full')}
           <fieldset class="time-range full" data-time-open="false"><legend>请假时间${star}</legend>
             <button type="button" class="time-trigger" aria-controls="time-inputs" aria-expanded="false" data-empty>请选择</button>
             <div class="time-inputs" id="time-inputs">
@@ -388,6 +399,8 @@ function wireForm(application, editing) {
   const timeToggle = application.querySelector('.time-trigger');
   const attachments = editing ? editing.files.map(file => ({...file})) : [];
   const updateUploads = () => { uploadList.innerHTML = pictures(attachments, true); };
+  let termManual = false;
+  controls.term.addEventListener('input', () => { termManual = true; });
 
   function setTimeOpen(open) {
     timeRange.dataset.timeOpen = String(open);
@@ -399,6 +412,15 @@ function wireForm(application, editing) {
       const input = controls[counter.dataset.count];
       counter.textContent = `${input.value.length}/${input.maxLength}`;
     }
+    // 学期随开始时间自动判断（9.1–次年 3.1 第 1 学期，3.1–8.31 第 2 学期），手动改过学期后不再自动覆盖
+    if (!termManual && controls.start.value) {
+      const auto = termForDate(controls.start.value);
+      if (auto && controls.term.value !== auto) controls.term.value = auto;
+    }
+    const termDisplay = application.querySelector('#term-display');
+    if (termDisplay) termDisplay.textContent = controls.term.value || currentTerm;
+    const termCountEl = application.querySelector('#term-count');
+    if (termCountEl) termCountEl.textContent = String(termCount(records, controls.term.value || currentTerm));
     const total = minutes(controls.start.value, controls.end.value);
     controls.end.setCustomValidity(controls.start.value && controls.end.value && !total ? '结束时间必须晚于开始时间' : '');
     application.querySelector('#duration').textContent = total ? duration(total) : '0小时0分钟';
@@ -427,8 +449,8 @@ function wireForm(application, editing) {
     const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     controls.type.value = '校内请假';
     controls.category.value = template.category;
-    controls.start.value = `${day}T00:00`;
-    controls.end.value = `${day}T23:59`;
+    controls.start.value = `${day}T08:00`;
+    controls.end.value = `${day}T20:00`;
     controls.reason.value = template.reason;
     controls.guardian.value = '高女士';
     controls.guardianPhone.value = '13398384611';
@@ -494,6 +516,9 @@ function wireForm(application, editing) {
     controls.phone.value = editing.phone || '';
     controls.type.value = editing.type || '';
     controls.category.value = editing.category || '';
+    controls.term.value = editing.term || '';
+    // 这条记录的学期如果和按日期算出来的不一致，说明之前手动改过，别自动覆盖
+    termManual = Boolean(editing.term && termForDate(editing.start) && editing.term !== termForDate(editing.start));
     controls.start.value = editing.start || '';
     controls.end.value = editing.end || '';
     controls.reason.value = editing.reason || '';
@@ -509,6 +534,7 @@ function wireForm(application, editing) {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     controls.start.value = `${todayStr}T00:00`;
     controls.end.value = `${todayStr}T23:59`;
+    controls.term.value = termForDate(controls.start.value);
     controls.guardian.value = '高女士';
     controls.guardianPhone.value = '13398384611';
     controls.informed.value = '是';
@@ -802,6 +828,10 @@ function confirmSave(data, files, editing) {
         const saved = await updateRecords(items => items.map(item => {
           if (item.id !== editing.id) return item;
           const next = {...item, ...data, destination: data.destination || '', endTimestamp: Date.parse(data.end), files: [...files], signature: signed ? canvas.toDataURL() : item.signature};
+          // 学期改了，本学期请假次数按新学期重算
+          if (data.term && data.term !== item.term) {
+            next.count = items.filter(r => r.term === data.term && r.id !== item.id).length + 1;
+          }
           // 已销假的记录改到未来时间，重新变成未销假；改到过去时间则保持已销假
           if (item.status === 'closed' && Date.parse(data.end) > Date.now()) {
             next.status = 'approved';
@@ -817,7 +847,7 @@ function confirmSave(data, files, editing) {
       const id = `practice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const saved = await updateRecords(items => [{
         ...data, id, endTimestamp: Date.parse(data.end),
-        term: currentTerm, count: termCount(items) + 1,
+        term: data.term || currentTerm, count: termCount(items, data.term || currentTerm) + 1,
         files: [...files], signature: signed ? canvas.toDataURL() : '', status: 'pending',
       }, ...items]);
       announceChange('请假申请已提交', saved);
@@ -1093,7 +1123,27 @@ window.addEventListener('storage', event => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) void updateRecords();
 });
+function onRecordsPage() {
+  const h = location.hash.slice(1).split('/')[0];
+  return h === '' || h === 'records';
+}
+function exitEditMode() {
+  editing = false;
+  selectedIds.clear();
+  render();
+}
+// 编辑模式下点左上角返回，直接退出编辑模式（不在编辑表单里时才生效；编辑表单里点返回仍回列表、留在编辑模式，引导不受影响）
+document.querySelector('#mobile-back').addEventListener('click', event => {
+  if (editing && onRecordsPage()) {
+    event.preventDefault();
+    exitEditMode();
+  }
+});
 document.querySelector('#mobile-close').addEventListener('click', () => {
+  if (editing && onRecordsPage()) {
+    exitEditMode();
+    return;
+  }
   // 浏览器标签页一般不允许脚本直接关闭，关不掉就回首页
   window.close();
   setTimeout(() => { location.hash = '#records'; }, 300);

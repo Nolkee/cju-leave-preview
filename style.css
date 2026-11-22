@@ -136,7 +136,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .reorder-controls { display: flex; align-items: center; gap: 4px; flex: none; }
 .reorder-btn { min-height: 36px; min-width: 36px; padding: 4px 8px; font-size: 16px; }
 .reorder-btn:disabled { opacity: .35; cursor: default; }
-.select-btn { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin: 0; padding: 0; border: 2px solid var(--muted); border-radius: 50%; background: transparent; color: #fff; font-size: 16px; line-height: 1; cursor: pointer; }
+.select-btn { flex: none; display: grid; place-items: center; width: 14px; height: 14px; margin: 0; padding: 0; border: 1.5px solid var(--muted); border-radius: 50%; background: transparent; color: #fff; font-size: 10px; line-height: 1; cursor: pointer; }
 .select-btn.selected { border-color: var(--accent); background: var(--accent); }
 .record.editing .record-heading h2 { flex: 1; }
 .record.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
