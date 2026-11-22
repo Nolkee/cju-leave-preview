@@ -364,7 +364,7 @@ function details(record) {
     <section class="panel"><h2>请假材料</h2>${record.files.length ? `<div class="upload-list">${pictures(record.files)}</div>` : '<p>暂无材料</p>'}</section>
     <section class="panel"><h2>学生签字</h2>${record.signature ? `<img class="sign-preview" src="${escapeHtml(record.signature)}" alt="学生签字">` : '<p>暂无签字</p>'}</section>
     ${record.status === 'closed' ? `<section class="panel"><h2>销假信息</h2>${metadata([['销假时间', dateText(record.closedAt)], ['销假方式', escapeHtml(closeMethod)]])}</section>` : ''}
-    <div class="actions footer-actions"><a class="btn" href="#edit/${id}">编辑</a>${record.status !== 'closed' ? `<button class="btn primary" data-transition="${id}">${record.status === 'pending' ? '审批通过' : '销假'}</button>` : ''}</div>
+    <div class="actions footer-actions">${record.status !== 'closed' ? `<button class="btn primary" data-transition="${id}">${record.status === 'pending' ? '审批通过' : '销假'}</button>` : ''}</div>
   </div>`;
 }
 
