@@ -219,7 +219,7 @@ function list() {
       ? `<span class="drag-handle" data-drag="${id}" title="按住拖动调整顺序" aria-label="拖动调整顺序">⋮⋮</span>`
       : `<details class="record-options">
           <summary aria-label="更多操作"><span aria-hidden="true">⋯</span></summary>
-          <div class="record-option-list">${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
+          <div class="record-option-list">${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn" data-delete="${id}">删除记录</button></div>
         </details>`;
     const reorderButtons = reordering ? `<div class="reorder-controls">
       <button type="button" class="btn reorder-btn" data-move-up="${id}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
