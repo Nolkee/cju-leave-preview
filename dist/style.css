@@ -73,7 +73,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 #mobile-back span { width: 10px; height: 10px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(45deg); }
 #mobile-close { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; }
 #mobile-close span { font-size: 26px; line-height: 1; font-weight: 400; }
-#screen { max-width: 480px; margin: auto; padding: 12px 15px 26px; min-height: calc(100dvh + 60px); }
+#screen { max-width: 480px; margin: auto; padding: 12px 15px 26px; min-height: 100dvh; }
 #screen:has(.footer-actions) { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
 .narrow { max-width: 760px; margin-inline: auto; }
 .panel, .record { border: 1px solid var(--line); background: var(--card); border-radius: 18px; padding: 24px; min-width: 0; }
@@ -204,8 +204,6 @@ dialog .actions { margin-top: 16px; }
 .usage-help dt { margin-bottom: 3px; font-size: 14px; font-weight: 700; }
 .usage-help dd { color: var(--muted); font-size: 14px; line-height: 1.65; }
 .copy-link { position: relative; color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
-.copy-link::after { content: '点击复制网址'; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #252b58; color: #fff; font-size: 12px; font-weight: 400; line-height: 1.4; padding: 5px 9px; border-radius: 7px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
-.copy-link:hover::after, .copy-link:focus-visible::after { opacity: 1; }
 .help-steps { margin: 8px 0 8px 20px; padding: 0; display: grid; gap: 4px; }
 dialog:modal { overscroll-behavior: contain; }
 dialog::backdrop { background: #191f4390; overflow: hidden; overscroll-behavior: contain; }

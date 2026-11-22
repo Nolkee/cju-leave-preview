@@ -519,15 +519,15 @@ const titleHintKey = 'leave-title-hint-count-v1';
 const TITLE_HINT_MAX = 3;
 const usageHelpHtml = `<p class="usage-notice">此项目仅用于学习交流，请勿用于虚假请假、伪造请假证明或冒充正式校务系统。</p>
   <dl class="usage-help">
-    <div><dt>方法一</dt><dd>直接在浏览器中打开<a href="https://cju-leave-preview.pages.dev/" class="copy-link" aria-label="点击复制网址">网址</a>。</dd></div>
-    <div><dt>方法二（推荐）</dt><dd>在支持此功能的浏览器中：
+    <div><dt>方法一：直接打开网址</dt><dd>直接在浏览器中打开<a href="https://cju-leave-preview.pages.dev/" class="copy-link">本站</a>即可<br><strong>缺点：</strong>浏览器会显示地址栏，不是全屏效果，不能做到完美显示。</dd></div>
+    <div><dt>方法二：添加到主屏幕（推荐）</dt><dd>全屏打开，没有地址栏和浏览器按钮，可以避免方法一的问题：
       <ol class="help-steps">
-        <li>打开「分享」或「更多」菜单</li>
-        <li>选择「添加到主屏幕」或「创建快捷方式」。</li>
+        <li>在支持的浏览器（如 Safari）中打开此网站，点击「分享」或「更多」。</li>
+        <li>往下划，找到「添加到主屏幕」，点「添加」。</li>
       </ol>
       下次点桌面带有企业微信图标的「请假申请」快捷方式即可打开～</dd></div>
   </dl>
-  <p class="usage-tip"><strong>温馨提示：</strong>大陆网络访问时，直接打开这个网址即可；使用科学上网访问本站时，会自动跳转到 Vercel 版本。</p>`;
+  <p class="usage-tip"><strong>温馨提示：</strong> 本站根据网络分流。大陆网络访问会自动跳转到 Cloudflare 托管版本；科学上网访问会自动跳转到 Vercel 托管版本。</p>`;
 const githubMarkSvg = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`;
 
 function starLinksHtml() {
@@ -965,7 +965,12 @@ document.addEventListener('click', event => {
 
 function closeTopOptionsOutside(event) {
   const top = document.querySelector('#top-options');
-  if (top && top.open && !top.contains(event.target)) top.open = false;
+  if (!top || !top.open) return;
+  // 菜单换内容时会把被点的按钮移出文档（innerHTML 重写），此时 event.target 已不在文档里，
+  // contains() 会误判为“点在外面”而关掉菜单；焦点被移走后落到 body 也会触发 focusin，同样不是真的点在外面。
+  if (!event.target.isConnected) return;
+  if (event.type === 'focusin' && event.target === document.body) return;
+  if (!top.contains(event.target)) top.open = false;
 }
 
 document.addEventListener('click', closeTopOptionsOutside);
