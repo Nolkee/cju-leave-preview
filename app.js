@@ -219,7 +219,7 @@ function list() {
       ? `<span class="drag-handle" data-drag="${id}" title="按住拖动调整顺序" aria-label="拖动调整顺序">⋮⋮</span>`
       : `<details class="record-options">
           <summary aria-label="更多操作"><span aria-hidden="true">⋯</span></summary>
-          <div class="record-option-list">${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
+          <div class="record-option-list"><a class="btn" href="#edit/${id}">编辑</a>${records.length > 1 ? `<button type="button" class="btn" data-reorder="${id}">调整顺序</button>` : ''}<button type="button" class="btn danger" data-delete="${id}">删除记录</button></div>
         </details>`;
     const reorderButtons = reordering ? `<div class="reorder-controls">
       <button type="button" class="btn reorder-btn" data-move-up="${id}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
@@ -270,14 +270,14 @@ function choice(name, label) {
   </div></fieldset>`;
 }
 
-function form() {
+function form(editing) {
   return `<div class="narrow">
-    ${heading('请假申请')}
+    ${heading(editing ? '编辑请假' : '请假申请')}
     <form id="application" autocomplete="off">
-      <div class="quick-actions">
+      ${editing ? '' : `<div class="quick-actions">
         <button type="button" class="btn quick-btn" data-template="sick">一键病假</button>
         <button type="button" class="btn quick-btn" data-template="personal">一键事假</button>
-      </div>
+      </div>`}
       <section class="panel application-info"><h2>请假信息</h2>
         <div class="stats"><span>学期 <strong>${currentTerm}</strong></span><span>本学期请假次数 <strong id="term-count">${termCount()}</strong></span></div>
         <div class="form-grid">
@@ -304,7 +304,7 @@ function form() {
         <label class="btn file-picker"><span>选择图片</span><input id="material" aria-label="选择图片" type="file" accept="image/*" multiple></label>
         <div id="uploads" class="upload-list"></div>
       </section>
-      <div class="actions footer-actions"><button class="btn primary" id="submit-application">提交</button></div>
+      <div class="actions footer-actions"><button class="btn primary" id="submit-application">${editing ? '保存修改' : '提交'}</button></div>
     </form>
   </div>`;
 }
@@ -343,7 +343,7 @@ function details(record) {
     <section class="panel"><h2>请假材料</h2>${record.files.length ? `<div class="upload-list">${pictures(record.files)}</div>` : '<p>暂无材料</p>'}</section>
     <section class="panel"><h2>学生签字</h2>${record.signature ? `<img class="sign-preview" src="${escapeHtml(record.signature)}" alt="学生签字">` : '<p>暂无签字</p>'}</section>
     ${record.status === 'closed' ? `<section class="panel"><h2>销假信息</h2>${metadata([['销假时间', dateText(record.closedAt)], ['销假方式', escapeHtml(closeMethod)]])}</section>` : ''}
-    ${record.status !== 'closed' ? `<div class="actions footer-actions"><button class="btn primary" data-transition="${id}">${record.status === 'pending' ? '审批通过' : '销假'}</button></div>` : ''}
+    <div class="actions footer-actions"><a class="btn" href="#edit/${id}">编辑</a>${record.status !== 'closed' ? `<button class="btn primary" data-transition="${id}">${record.status === 'pending' ? '审批通过' : '销假'}</button>` : ''}</div>
   </div>`;
 }
 
@@ -370,13 +370,13 @@ async function thumbnail(file) {
   }
 }
 
-function wireForm(application) {
+function wireForm(application, editing) {
   const controls = application.elements;
   const uploadList = application.querySelector('#uploads');
   const submit = application.querySelector('#submit-application');
   const timeRange = application.querySelector('.time-range');
   const timeToggle = application.querySelector('.time-trigger');
-  const attachments = [];
+  const attachments = editing ? editing.files.map(file => ({...file})) : [];
   const updateUploads = () => { uploadList.innerHTML = pictures(attachments, true); };
 
   function setTimeOpen(open) {
@@ -477,16 +477,32 @@ function wireForm(application) {
     const data = Object.fromEntries(new FormData(application));
     delete data.material;
     for (const name of ['reason', 'guardian', 'destination']) data[name] = (data[name] || '').trim();
-    confirmApplication(data, attachments);
+    confirmSave(data, attachments, editing);
   });
-  // 新增默认模板：打开表单即按常用值预填（时间当天一整天、监护人高女士、告知监护人是）
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  controls.start.value = `${todayStr}T00:00`;
-  controls.end.value = `${todayStr}T23:59`;
-  controls.guardian.value = '高女士';
-  controls.guardianPhone.value = '13398384611';
-  controls.informed.value = '是';
+  if (editing) {
+    // 编辑模式：按这条记录现有的值预填，不套新申请的默认值
+    controls.phone.value = editing.phone || '';
+    controls.type.value = editing.type || '';
+    controls.category.value = editing.category || '';
+    controls.start.value = editing.start || '';
+    controls.end.value = editing.end || '';
+    controls.reason.value = editing.reason || '';
+    controls.guardian.value = editing.guardian || '';
+    controls.guardianPhone.value = editing.guardianPhone || '';
+    controls.informed.value = editing.informed || '否';
+    controls.off.value = editing.off || '否';
+    controls.destination.value = editing.destination || '';
+    updateUploads();
+  } else {
+    // 新增默认模板：打开表单即按常用值预填（时间当天一整天、监护人高女士、告知监护人是）
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    controls.start.value = `${todayStr}T00:00`;
+    controls.end.value = `${todayStr}T23:59`;
+    controls.guardian.value = '高女士';
+    controls.guardianPhone.value = '13398384611';
+    controls.informed.value = '是';
+  }
   update();
 }
 
@@ -680,10 +696,29 @@ function showTitleHint() {
   hint._timer = setTimeout(hideTitleHint, 6000);
 }
 
-function confirmApplication(data, files) {
+function confirmSave(data, files, editing) {
   let signed = false;
-  openDialog('确认提交', `<p class="helper">学生签字（选填）</p><canvas id="signature" width="840" height="280" aria-label="学生签字区"></canvas><button type="button" class="btn" id="clear-signature">清空签字</button>`,
-    '<button value="cancel" class="btn" autofocus>继续填写</button><button value="confirm" class="btn primary">确认提交</button>', async () => {
+  const title = editing ? '确认保存' : '确认提交';
+  const hint = editing ? '学生签字（选填，不重签则保留原签字）' : '学生签字（选填）';
+  const confirmLabel = editing ? '确认保存' : '确认提交';
+  openDialog(title, `<p class="helper">${hint}</p><canvas id="signature" width="840" height="280" aria-label="学生签字区"></canvas><button type="button" class="btn" id="clear-signature">清空签字</button>`,
+    `<button value="cancel" class="btn" autofocus>继续填写</button><button value="confirm" class="btn primary">${confirmLabel}</button>`, async () => {
+      if (editing) {
+        const saved = await updateRecords(items => items.map(item => {
+          if (item.id !== editing.id) return item;
+          const next = {...item, ...data, destination: data.destination || '', endTimestamp: Date.parse(data.end), files: [...files], signature: signed ? canvas.toDataURL() : item.signature};
+          // 已销假的记录改到未来时间，重新变成未销假；改到过去时间则保持已销假
+          if (item.status === 'closed' && Date.parse(data.end) > Date.now()) {
+            next.status = 'approved';
+            delete next.closedAt;
+            delete next.closeMethod;
+          }
+          return next;
+        }));
+        announceChange('修改已保存', saved);
+        location.hash = `detail/${editing.id}`;
+        return;
+      }
       const id = `practice-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const saved = await updateRecords(items => [{
         ...data, id, endTimestamp: Date.parse(data.end),
@@ -733,9 +768,9 @@ function confirmApplication(data, files) {
 function render(restoreFocus = false) {
   const [requestedPage, id] = location.hash.slice(1).split('/');
   const record = records.find(item => item.id === id);
-  const page = requestedPage === 'apply' ? 'apply' : requestedPage === 'detail' && record ? 'detail' : 'records';
+  const page = requestedPage === 'apply' ? 'apply' : requestedPage === 'detail' && record ? 'detail' : requestedPage === 'edit' && record ? 'edit' : 'records';
   if (page !== 'records') reordering = false;
-  screen.innerHTML = page === 'apply' ? form() : page === 'detail' ? details(record) : list();
+  screen.innerHTML = page === 'apply' ? form() : page === 'detail' ? details(record) : page === 'edit' ? form(record) : list();
   screen.dataset.page = page;
   renderedRecords = records;
   const title = screen.querySelector('h1');
@@ -743,7 +778,7 @@ function render(restoreFocus = false) {
   document.querySelector('#mobile-title').textContent = title.textContent;
   document.querySelector('#mobile-back').hidden = false;
   const application = screen.querySelector('#application');
-  if (application) wireForm(application);
+  if (application) wireForm(application, page === 'edit' ? record : null);
   if (restoreFocus) {
     window.scrollTo(0, 0);
     title.focus({preventScroll: true});
@@ -752,7 +787,7 @@ function render(restoreFocus = false) {
 
 function refreshRecordsView() {
   if (modal.open || !screen.dataset.page || renderedRecords === records) return;
-  if (screen.dataset.page !== 'apply') {
+  if (screen.dataset.page !== 'apply' && screen.dataset.page !== 'edit') {
     render();
     return;
   }
