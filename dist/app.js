@@ -45,10 +45,11 @@ function countVisit() {
   }
 }
 
-// 全站计数（Cloudflare Worker + KV）：浏览器 ID 去重，全站共用同一套数
-const COUNTER_BASE = 'https://cju-leave-preview.ans44454456.workers.dev';
+// 全站计数（Cloudflare Pages Functions + KV，同域）：浏览器 ID 去重，全站共用同一套数
+// 同域 /api/*：走本站同一个 pages.dev 域名，workers.dev 在国内不开 VPN 打不开，改走同域就不用翻墙
+const COUNTER_BASE = '/api';
 const clientIdKey = 'leave-client-id-v1';
-let counterTotals = null; // 最近一次 Worker 返回的 { visitors, bonus, myVisitorRank, myBonusRank, myVisits }
+let counterTotals = null; // 最近一次接口返回的 { visitors, bonus, myVisitorRank, myBonusRank, myVisits }
 
 function getClientId() {
   try {
