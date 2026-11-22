@@ -70,6 +70,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   50% { transform: translateX(-50%) translateY(-5px); }
 }
 .top-hint { position: absolute; top: calc(100% + 8px); right: 12px; max-width: min(280px, calc(100vw - 32px)); background: #fff; color: #15192d; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: 13px; line-height: 1.5; text-align: center; box-shadow: 0 10px 30px #171f4133; z-index: 4; animation: hint-bounce-right 1s ease-in-out infinite; }
+@media (min-width: 560px) { .top-hint { right: calc(50vw - 240px + 12px); } }
 .top-hint::before { content: ''; position: absolute; bottom: 100%; right: 22px; border: 6px solid transparent; border-bottom-color: #fff; }
 @keyframes hint-bounce-right {
   0%, 100% { transform: translateY(0); }
