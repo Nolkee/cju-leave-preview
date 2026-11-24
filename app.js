@@ -332,11 +332,13 @@ function details(record) {
   return `<div class="narrow details">
     ${heading('请假详情')}
     <div class="panel">
-      <ol class="progress" aria-label="办理进度">
-        <li class="done">学生</li>
-        <li class="${record.status !== 'pending' ? 'done' : ''}">辅导员</li>
-        <li class="${record.status === 'closed' ? 'done' : ''}">结束</li>
-      </ol>
+      <div class="progress" role="list" aria-label="办理进度">
+        <div class="progress-step done" role="listitem"><span class="progress-label">学生</span><span class="progress-dot">✓</span></div>
+        <span class="progress-line" aria-hidden="true"></span>
+        <div class="progress-step${record.status !== 'pending' ? ' done' : ''}" role="listitem"><span class="progress-label">辅导员</span><span class="progress-dot">${record.status !== 'pending' ? '✓' : ''}</span></div>
+        <span class="progress-line" aria-hidden="true"></span>
+        <div class="progress-step${record.status === 'closed' ? ' done' : ''}" role="listitem"><span class="progress-label">结束</span><span class="progress-dot">${record.status === 'closed' ? '✓' : ''}</span></div>
+      </div>
     </div>
     <p class="detail-status">${badge(record.status)}</p>
     <section class="panel"><h2>请假信息</h2>${metadata([
@@ -1078,7 +1080,7 @@ screen.addEventListener('pointerdown', event => {
   handle.addEventListener('pointercancel', onDragEnd);
 });
 
-/* 顶栏右上角 ⋯ 菜单：只有「编辑」，点进编辑模式（列表多选删除 / 单条编辑） */
+/* 顶栏右上角 ⋯ 菜单：「编辑」进编辑模式（列表多选删除 / 单条编辑），「调整顺序」进排序模式（↑ ↓ / 拖动调顺序） */
 const topOptions = document.querySelector('#top-options');
 const topOptionList = document.querySelector('#top-option-list');
 function renderTopOptions() {
@@ -1087,7 +1089,7 @@ function renderTopOptions() {
     topOptionList.innerHTML = '<p class="top-option-title">暂无请假记录</p>';
     return;
   }
-  topOptionList.innerHTML = '<button type="button" class="btn" data-edit-mode>编辑</button>';
+  topOptionList.innerHTML = '<button type="button" class="btn" data-edit-mode>编辑</button><button type="button" class="btn" data-reorder-mode>调整顺序</button>';
 }
 if (topOptions && topOptionList) {
   topOptions.addEventListener('toggle', () => { if (topOptions.open) { hideTopHint(); renderTopOptions(); } });
@@ -1095,10 +1097,20 @@ if (topOptions && topOptionList) {
     if (event.target.closest('[data-edit-mode]')) {
       topOptions.open = false;
       hideTopHint();
+      reordering = false;
       editing = true;
       selectedIds.clear();
       render();
       startEditGuide();
+      return;
+    }
+    if (event.target.closest('[data-reorder-mode]')) {
+      topOptions.open = false;
+      hideTopHint();
+      editing = false;
+      selectedIds.clear();
+      reordering = true;
+      render();
     }
   });
 }
