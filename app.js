@@ -228,7 +228,7 @@ function list() {
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
       </div>` : `<div class="actions">
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
-        ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}">请假证明</button>`}
+        ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}" disabled>请假证明</button>`}
       </div>`;
     return `<article class="record${reordering ? ' reordering' : ''}${editing ? ' editing' : ''}${editing && selectedIds.has(record.id) ? ' selected' : ''}" data-record-id="${id}">
       <div class="record-heading">
@@ -986,7 +986,7 @@ screen.addEventListener('click', async event => {
     return;
   }
   if (button.dataset.proof) {
-    openDialog('请假证明预览', `<p class="notice">仅供预览 · 无证明效力</p><div class="proof">${metadata([
+    openDialog('请假证明预览', `<div class="proof">${metadata([
       ['学生', '林同学'], ['类型', escapeHtml(record.type)],
       ['时间', `${dateText(record.start)} 至 ${dateText(record.end)}`], ['状态', statusText[record.status]],
     ])}</div>`, '<button value="cancel" class="btn primary" autofocus>关闭</button>');
