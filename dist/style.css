@@ -120,7 +120,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .top-option-list .btn { min-height: 44px; width: 100%; justify-content: flex-start; border-color: transparent; }
 .top-option-list .btn.danger { border-color: transparent; }
 .top-option-title { margin: 0; padding: 8px 12px 4px; font-size: 13px; color: var(--muted); }
-/* 左下角悬浮 返回 / 首页（仅界面展示，无跳转功能） */
+/* 左下角悬浮 返回 / 首页（返回为链接、点回记录列表；首页仅界面展示） */
 .float-nav { position: fixed; left: 0; bottom: 130px; z-index: 2; display: flex; flex-direction: column; gap: 12px; }
 .float-nav-btn { writing-mode: vertical-rl; letter-spacing: 2px; background: var(--accent); color: #fff; border: 0; border-radius: 0 12px 12px 0; padding: 12px 5px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px #171f4130; }
 .float-nav-btn:active { filter: brightness(.92); }

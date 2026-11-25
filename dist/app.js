@@ -228,7 +228,7 @@ function list() {
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
       </div>` : `<div class="actions">
         <a class="btn" href="#detail/${id}" aria-label="查看${escapeHtml(record.reason)}的请假详情">查看</a>
-        ${record.status === 'pending' ? '' : `<button class="btn" data-proof="${id}" disabled>请假证明</button>`}
+        ${record.status === 'pending' ? '' : `<button class="btn" type="button">请假证明</button>`}
       </div>`;
     return `<article class="record${reordering ? ' reordering' : ''}${editing ? ' editing' : ''}${editing && selectedIds.has(record.id) ? ' selected' : ''}" data-record-id="${id}">
       <div class="record-heading">
